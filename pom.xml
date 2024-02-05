@@ -25,10 +25,11 @@
         <maven.surefire.version>2.18.1</maven.surefire.version>
         <log4j.version>2.20.0</log4j.version>
         <hessian.version>4.0.4</hessian.version>
-        <netty.version>4.1.99.Final</netty.version>
+        <netty.version>4.1.106.Final</netty.version>
         <kryo.version>5.6.0</kryo.version>
         <fury.version>0.4.1</fury.version>
         <lombok.version>1.18.8</lombok.version>
+        <vertx.version>4.5.2</vertx.version>
     </properties>
 
 
@@ -63,6 +64,11 @@
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok</artifactId>
                 <version>${lombok.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.vertx</groupId>
+                <artifactId>vertx-web</artifactId>
+                <version>${vertx.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.netty</groupId>
