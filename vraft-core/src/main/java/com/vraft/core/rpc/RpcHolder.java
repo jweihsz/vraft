@@ -2,8 +2,8 @@ package com.vraft.core.rpc;
 
 /**
  * @author jweih.hjw
- * @version 创建时间：2024/2/5 2:53 下午
+ * @version 2024/2/5 14:53
  */
 public class RpcHolder {
-    
+
 }

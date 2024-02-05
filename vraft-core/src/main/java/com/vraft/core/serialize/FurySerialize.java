@@ -5,17 +5,19 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import com.vraft.facade.serializer.Serializer;
-import com.vraft.facade.serializer.SerializerEnum;
-import io.fury.Fury;
-import io.fury.config.FuryBuilder;
-import io.fury.config.Language;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.vraft.facade.serializer.Serializer;
+import com.vraft.facade.serializer.SerializerEnum;
+
+import io.fury.Fury;
+import io.fury.config.FuryBuilder;
+import io.fury.config.Language;
+
 /**
  * @author jweih.hjw
- * @version 创建时间：2024/2/5 5:05 下午
+ * @version 2024/2/5 17:05
  */
 public class FurySerialize implements Serializer {
     private final static Logger logger = LogManager.getLogger(FurySerialize.class);
@@ -24,7 +26,9 @@ public class FurySerialize implements Serializer {
     private static final ThreadLocal<Fury> TL = new ThreadLocal<>();
 
     public FurySerialize(List<Type> clz) {
-        if (clz == null) {return;}
+        if (clz == null) {
+            return;
+        }
         rs.addAll(clz);
     }
 
@@ -44,13 +48,19 @@ public class FurySerialize implements Serializer {
     }
 
     private void register(Fury fury, Set<Type> rs) {
-        if (rs == null || rs.isEmpty()) {return;}
-        for (Type cls : rs) {fury.register((Class)cls);}
+        if (rs == null || rs.isEmpty()) {
+            return;
+        }
+        for (Type cls : rs) {
+            fury.register((Class)cls);
+        }
     }
 
     private Fury getFury() {
         Fury fury = TL.get();
-        if (fury != null) {return fury;}
+        if (fury != null) {
+            return fury;
+        }
         FuryBuilder fb = Fury.builder();
         fb.withLanguage(Language.JAVA);
         fb.requireClassRegistration(true);

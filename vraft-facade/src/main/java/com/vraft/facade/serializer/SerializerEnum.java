@@ -2,7 +2,7 @@ package com.vraft.facade.serializer;
 
 /**
  * @author jweih.hjw
- * @version 创建时间：2024/2/5 5:59 下午
+ * @version 2024/2/5 17:59
  */
 public enum SerializerEnum {
 
@@ -16,8 +16,12 @@ public enum SerializerEnum {
 
     private final byte type;
 
-    SerializerEnum(byte type) {this.type = type;}
+    SerializerEnum(byte type) {
+        this.type = type;
+    }
 
-    public byte getType() {return type;}
+    public byte getType() {
+        return type;
+    }
 
 }

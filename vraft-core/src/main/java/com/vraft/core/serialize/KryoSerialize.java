@@ -7,17 +7,18 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.vraft.facade.serializer.Serializer;
 import com.vraft.facade.serializer.SerializerEnum;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 /**
  * @author jweih.hjw
- * @version 创建时间：2024/2/5 4:32 下午
+ * @version 2024/2/5 16:32
  */
 public class KryoSerialize implements Serializer {
     private final static Logger logger = LogManager.getLogger(KryoSerialize.class);
@@ -26,7 +27,9 @@ public class KryoSerialize implements Serializer {
     private static final ThreadLocal<Kryo> TL = new ThreadLocal<>();
 
     public KryoSerialize(List<Type> clz) {
-        if (clz == null) {return;}
+        if (clz == null) {
+            return;
+        }
         rs.addAll(clz);
     }
 
@@ -55,13 +58,19 @@ public class KryoSerialize implements Serializer {
     }
 
     private void register(Kryo kryo, Set<Type> rs) {
-        if (rs == null || rs.isEmpty()) {return;}
-        for (Type cls : rs) {kryo.register((Class)cls);}
+        if (rs == null || rs.isEmpty()) {
+            return;
+        }
+        for (Type cls : rs) {
+            kryo.register((Class)cls);
+        }
     }
 
     private Kryo getKryo() {
         Kryo kryo = TL.get();
-        if (kryo != null) {return kryo;}
+        if (kryo != null) {
+            return kryo;
+        }
         kryo = new Kryo();
         register(kryo, rs);
         TL.set(kryo);

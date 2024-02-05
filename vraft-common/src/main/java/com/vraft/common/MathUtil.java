@@ -2,7 +2,7 @@ package com.vraft.common;
 
 /**
  * @author jweih.hjw
- * @version 创建时间：2024/2/5 2:47 下午
+ * @version 2024/2/5 14:47
  */
 public class MathUtil {
     private MathUtil() {}
@@ -16,5 +16,5 @@ public class MathUtil {
         n |= n >>> 16;
         return (n < 0) ? 1 : (n >= 1073741824) ? 1073741824 : n + 1;
     }
-    
+
 }

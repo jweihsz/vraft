@@ -3,17 +3,18 @@ package com.vraft.core.serialize;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.caucho.hessian.io.Hessian2Input;
 import com.caucho.hessian.io.Hessian2Output;
 import com.caucho.hessian.io.SerializerFactory;
 import com.vraft.facade.serializer.Serializer;
 import com.vraft.facade.serializer.SerializerEnum;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 /**
  * @author jweih.hjw
- * @version 创建时间：2024/2/5 3:55 下午
+ * @version 2024/2/5 15:55
  */
 public class HessianSerialize implements Serializer {
     private final static Logger logger = LogManager.getLogger(HessianSerialize.class);

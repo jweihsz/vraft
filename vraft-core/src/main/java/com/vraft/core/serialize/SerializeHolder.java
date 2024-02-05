@@ -4,16 +4,17 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.vraft.facade.serializer.SerializeOpt;
 import com.vraft.facade.serializer.Serializer;
 import com.vraft.facade.serializer.SerializerEnum;
 import com.vraft.facade.serializer.SerializerService;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 /**
  * @author jweih.hjw
- * @version 创建时间：2024/2/5 3:53 下午
+ * @version 2024/2/5 15:53
  */
 @NotThreadSafe
 public class SerializeHolder implements SerializerService {
@@ -37,17 +38,23 @@ public class SerializeHolder implements SerializerService {
     }
 
     private Serializer newHessian(SerializeOpt opt) {
-        if (!opt.isHessian()) {return null;}
+        if (!opt.isHessian()) {
+            return null;
+        }
         return new HessianSerialize();
     }
 
     private Serializer newKryo(SerializeOpt opt) {
-        if (!opt.isKryo()) {return null;}
+        if (!opt.isKryo()) {
+            return null;
+        }
         return new KryoSerialize(opt.getKryoCls());
     }
 
     private Serializer newFury(SerializeOpt opt) {
-        if (!opt.isFury()) {return null;}
+        if (!opt.isFury()) {
+            return null;
+        }
         return new FurySerialize(opt.getFuryCls());
     }
 

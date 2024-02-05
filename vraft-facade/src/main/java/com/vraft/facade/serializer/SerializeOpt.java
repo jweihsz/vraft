@@ -7,12 +7,12 @@ import lombok.Data;
 
 /**
  * @author jweih.hjw
- * @version 创建时间：2024/2/5 5:36 下午
+ * @version 2024/2/5 17:36
  */
 @Data
 public class SerializeOpt {
     private boolean isHessian;
-    
+
     private boolean isKryo;
     private List<Type> kryoCls;
 
