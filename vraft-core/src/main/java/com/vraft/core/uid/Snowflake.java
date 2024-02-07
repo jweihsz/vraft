@@ -7,7 +7,8 @@ import com.vraft.facade.uid.IdGenerator;
 
 /**
  * @author jweihsz
- * @version 2024/2/7 14:51 |flag(1)|nodeId(10b)|timestamp(41b)|seq(12b)|
+ * @version 2024/2/7 14:51
+ * @mark |flag(1)|nodeId(10b)|timestamp(41b)|seq(12b)|
  **/
 public class Snowflake implements IdGenerator {
 
