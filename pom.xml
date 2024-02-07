@@ -10,7 +10,6 @@
     <version>1.0.0</version>
 
     <modules>
-        <module>vraft-common</module>
         <module>vraft-main</module>
         <module>vraft-core</module>
         <module>vraft-facade</module>

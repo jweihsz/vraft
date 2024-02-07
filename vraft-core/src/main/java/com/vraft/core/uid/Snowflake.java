@@ -2,7 +2,7 @@ package com.vraft.core.uid;
 
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.vraft.common.OtherUtil;
+import com.vraft.core.utils.OtherUtil;
 import com.vraft.facade.uid.IdGenerator;
 
 /**

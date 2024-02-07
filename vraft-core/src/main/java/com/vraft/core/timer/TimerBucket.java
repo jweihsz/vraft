@@ -1,6 +1,6 @@
 package com.vraft.core.timer;
 
-import java.util.Set;
+import java.util.Queue;
 
 /**
  * @author jweihsz
@@ -8,9 +8,13 @@ import java.util.Set;
  **/
 public class TimerBucket {
     private TimerTask head, tail;
+    private final TimerWheel wheel;
+
+    public TimerBucket(TimerWheel wheel) {
+        this.wheel = wheel;
+    }
 
     public void addTimeout(TimerTask task) {
-        task.bucket = this;
         if (head == null) {
             head = tail = task;
         } else {
@@ -21,59 +25,55 @@ public class TimerBucket {
     }
 
     public void expireTimeouts(long deadline) {
-        TimerTask timeout = head;
-        while (timeout != null) {
-            TimerTask next = timeout.next;
-            if (timeout.remainingRounds <= 0) {
-                next = remove(timeout);
-                if (timeout.deadline <= deadline) {
-                    timeout.expire();
+        TimerTask task = head;
+        while (task != null) {
+            TimerTask next = task.next;
+            if (task.remaining <= 0) {
+                next = remove(task);
+                if (task.deadline <= deadline) {
+                    task.expire();
                 }
-            } else if (timeout.isCancelled()) {
-                next = remove(timeout);
+            } else if (task.isCancelled()) {
+                next = remove(task);
             } else {
-                timeout.remainingRounds--;
+                task.remaining--;
             }
-            timeout = next;
+            task = next;
         }
     }
 
-    public TimerTask remove(TimerTask timeout) {
-        TimerTask next = timeout.next;
-        if (timeout.prev != null) {
-            timeout.prev.next = next;
+    public TimerTask remove(TimerTask task) {
+        TimerTask next = task.next;
+        if (task.prev != null) {
+            task.prev.next = next;
         }
-        if (timeout.next != null) {
-            timeout.next.prev = timeout.prev;
+        if (task.next != null) {
+            task.next.prev = task.prev;
         }
-
-        if (timeout == head) {
-            if (timeout == tail) {
+        if (task == head) {
+            if (task == tail) {
                 tail = null;
                 head = null;
             } else {
                 head = next;
             }
-        } else if (timeout == tail) {
-            tail = timeout.prev;
+        } else if (task == tail) {
+            tail = task.prev;
         }
-        timeout.prev = null;
-        timeout.next = null;
-        timeout.bucket = null;
-        timeout.wheel.decPending();
+        wheel.decPending();
         return next;
     }
 
-    public void clearTimeouts(Set<TimerTask> set) {
+    public void clearTimeouts(Queue<TimerTask> unProcess) {
+        TimerTask task = null;
         for (;;) {
-            TimerTask timeout = pollTimeout();
-            if (timeout == null) {
+            if ((task = pollTimeout()) == null) {
                 return;
             }
-            if (timeout.isExpired() || timeout.isCancelled()) {
+            if (task.isExpired() || task.isCancelled()) {
                 continue;
             }
-            set.add(timeout);
+            unProcess.add(task);
         }
     }
 

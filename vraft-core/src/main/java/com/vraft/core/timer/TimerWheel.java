@@ -1,18 +1,18 @@
 package com.vraft.core.timer;
 
-import java.util.Collections;
-import java.util.HashSet;
+import static com.vraft.core.timer.TimerConsts.*;
+
 import java.util.Queue;
-import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.vraft.common.MathUtil;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-import io.netty.util.HashedWheelTimer;
+import com.vraft.core.utils.MathUtil;
+import com.vraft.core.utils.OtherUtil;
+
 import io.netty.util.internal.PlatformDependent;
 
 /**
@@ -20,53 +20,149 @@ import io.netty.util.internal.PlatformDependent;
  * @version 2024/2/7 20:55
  **/
 public class TimerWheel {
+    private final static Logger logger = LogManager.getLogger(TimerWheel.class);
 
-    public static final int WORKER_STATE_INIT = 0;
-    public static final int WORKER_STATE_STARTED = 1;
-    public static final int WORKER_STATE_SHUTDOWN = 2;
+    private final long maxPending;
+    private final long tickDuration;
+    private final Thread workerThread;
     private final AtomicLong pendingNum;
+    private final TimerBucket[] buckets;
     private final Queue<TimerTask> cancels;
     private final Queue<TimerTask> timeouts;
-    private final TimerBucket[] buckets;
-    private final int mask;
-    private volatile long startTime;
-    private final Thread workerThread;
-    private final long maxPendingTimeouts;
-    private final long tickDuration;
-    private final Worker worker = new Worker();
-    private volatile int workerState; // 0 - init, 1 - started, 2 - shut down
-    private final CountDownLatch startTimeInitialized = new CountDownLatch(1);
-    private static final AtomicIntegerFieldUpdater<TimerWheel> WORKER_STATE_UPDATER =
-        AtomicIntegerFieldUpdater.newUpdater(TimerWheel.class, "workerState");
+    private final Queue<TimerTask> unProcess;
+    private final AtomicInteger workerState;
+    private long curTick = 0, startTime = 1;
 
-    public TimerWheel(long tickDuration, TimeUnit unit, int ticksPerWheel, boolean leakDetection,
-        long maxPendingTimeouts) {
+    public TimerWheel(long tickDuration, int ticksPerWheel, long maxPending) {
+        this.maxPending = maxPending;
+        this.buckets = createBucket(ticksPerWheel);
         this.pendingNum = new AtomicLong(0);
         this.cancels = PlatformDependent.newMpscQueue();
         this.timeouts = PlatformDependent.newMpscQueue();
-        buckets = createWheel(ticksPerWheel);
-        mask = buckets.length - 1;
-        long duration = unit.toNanos(tickDuration);
-        if (duration < 1) {
-            this.tickDuration = 1;
-        } else {
-            this.tickDuration = duration;
-        }
-        workerThread = new Thread(worker);
-        this.maxPendingTimeouts = maxPendingTimeouts;
+        this.unProcess = PlatformDependent.newMpscQueue();
+        this.tickDuration = fitTickDuration(tickDuration);
+        this.workerState = new AtomicInteger(WORKER_INIT);
+        this.workerThread = runWheel();
     }
 
-    private TimerBucket[] createWheel(int ticksPerWheel) {
+    private long fitTickDuration(long tickDuration) {
+        TimeUnit unit = TimeUnit.MILLISECONDS;
+        long duration = unit.toNanos(tickDuration);
+        return duration < 1 ? 1 : duration;
+    }
+
+    private TimerBucket[] createBucket(int ticksPerWheel) {
         ticksPerWheel = MathUtil.adjust2pow(ticksPerWheel);
         TimerBucket[] wheel = new TimerBucket[ticksPerWheel];
         for (int i = 0; i < wheel.length; i++) {
-            wheel[i] = new TimerBucket();
+            wheel[i] = new TimerBucket(this);
         }
         return wheel;
     }
 
+    private void processCancels() {
+        TimerTask task;
+        for (;;) {
+            task = cancels.poll();
+            if (task == null) {
+                break;
+            }
+            task.remove();
+        }
+    }
+
+    private long waitNextTick(long deadline) {
+        long curGmt = System.nanoTime() - startTime;
+        long sleepMs = (deadline - curGmt + 999999) / 1000000;
+        if (sleepMs <= 0) {
+            return curGmt == Long.MIN_VALUE ? -Long.MAX_VALUE : curGmt;
+        }
+        if (PlatformDependent.isWindows()) {
+            sleepMs = sleepMs / 10 * 10;
+            sleepMs = sleepMs == 0 ? 1 : sleepMs;
+        }
+        OtherUtil.sleep(sleepMs);
+        return curGmt;
+    }
+
+    private void collectUnProcess() {
+        for (TimerBucket bucket : buckets) {
+            bucket.clearTimeouts(unProcess);
+        }
+        TimerTask timeout = null;
+        for (;;) {
+            timeout = timeouts.poll();
+            if (timeout == null) {
+                break;
+            }
+            if (!timeout.isCancelled()) {
+                unProcess.add(timeout);
+            }
+        }
+    }
+
+    private boolean moveNode(TimerTask task) {
+        if (task == null) {
+            return false;
+        }
+        if (task.state() == ST_CANCELLED) {
+            return true;
+        }
+        long calculated = task.deadline / tickDuration;
+        task.remaining = (calculated - curTick) / buckets.length;
+        final long ticks = Math.max(calculated, curTick);
+        int stopIndex = (int)(ticks & (buckets.length - 1));
+        TimerBucket bucket = buckets[stopIndex];
+        task.bucket = bucket;
+        bucket.addTimeout(task);
+        return true;
+    }
+
+    private Thread runWheel() {
+        if (!set(WORKER_INIT, WORKER_STARTED)) {
+            return null;
+        }
+        Thread t = new Thread(this::doWheel);
+        t.setName("wheel-timer-thread");
+        t.setDaemon(false);
+        t.start();
+        return t;
+    }
+
+    private void doWheel() {
+        boolean status = false;
+        startTime = System.nanoTime();
+        startTime = startTime == 0 ? 1 : startTime;
+        while (!Thread.interrupted()) {
+            long expire = tickDuration * (curTick + 1);
+            long deadline = waitNextTick(expire);
+            if (deadline <= 0) {
+                continue;
+            }
+            int idx = (int)(curTick & (buckets.length - 1));
+            processCancels();
+            TimerBucket bucket = buckets[idx];
+            status = true;
+            for (int i = 0; status && i < 10000; i++) {
+                status = moveNode(timeouts.poll());
+            }
+            bucket.expireTimeouts(deadline);
+            curTick++;
+        }
+        collectUnProcess();
+        processCancels();
+    }
+
     public Queue<TimerTask> getCancels() {
         return cancels;
+    }
+
+    public void addCancel(TimerTask task) {
+        cancels.add(task);
+    }
+
+    public void addTimeouts(TimerTask task) {
+        timeouts.add(task);
     }
 
     public Queue<TimerTask> getTimeouts() {
@@ -77,204 +173,55 @@ public class TimerWheel {
         return pendingNum;
     }
 
-    public long addPending() {
-        return pendingNum.incrementAndGet();
+    public void addPending() {
+        pendingNum.incrementAndGet();
     }
 
-    public long decPending() {
-        return pendingNum.decrementAndGet();
+    public void decPending() {
+        pendingNum.decrementAndGet();
     }
 
-    public void start() {
-        switch (WORKER_STATE_UPDATER.get(this)) {
-            case WORKER_STATE_INIT:
-                if (WORKER_STATE_UPDATER.compareAndSet(this, WORKER_STATE_INIT, WORKER_STATE_STARTED)) {
-                    workerThread.start();
-                }
-                break;
-            case WORKER_STATE_STARTED:
-                break;
-            case WORKER_STATE_SHUTDOWN:
-                throw new IllegalStateException("cannot be started once stopped");
-            default:
-                throw new Error("Invalid WorkerState");
+    public boolean addTimeout(TimerTask task, long delay) {
+        long next = pendingNum.get() + 1;
+        if (maxPending > 0 && next > maxPending) {
+            return false;
         }
-
-        // Wait until the startTime is initialized by the worker.
-        while (startTime == 0) {
-            try {
-                startTimeInitialized.await();
-            } catch (InterruptedException ignore) {
-                // Ignore - it will be ready very soon.
-            }
-        }
-    }
-
-    public TimerTask newTimeout(TimerTask task, long delay, TimeUnit unit) {
-
-        long pendingTimeoutsCount = pendingNum.incrementAndGet();
-
-        if (maxPendingTimeouts > 0 && pendingTimeoutsCount > maxPendingTimeouts) {
-            pendingNum.decrementAndGet();
-            throw new RejectedExecutionException("Number of pending timeouts (" + pendingTimeoutsCount
-                + ") is greater than or equal to maximum allowed pending " + "timeouts (" + maxPendingTimeouts + ")");
-        }
-        start();
-        long deadline = System.nanoTime() + unit.toNanos(delay) - startTime;
+        pendingNum.incrementAndGet();
+        TimeUnit unit = TimeUnit.MILLISECONDS;
+        long total = System.nanoTime() + unit.toNanos(delay);
+        long deadline = total - startTime;
         if (delay > 0 && deadline < 0) {
             deadline = Long.MAX_VALUE;
         }
         task.deadline = deadline;
         timeouts.add(task);
-        return task;
+        return true;
     }
 
-    public Set<TimerTask> stop() {
+    public Queue<TimerTask> stop() {
         if (Thread.currentThread() == workerThread) {
-            throw new IllegalStateException(HashedWheelTimer.class.getSimpleName() + ".stop() cannot be called from "
-                + io.netty.util.TimerTask.class.getSimpleName());
+            throw new RuntimeException();
         }
-
-        if (!WORKER_STATE_UPDATER.compareAndSet(this, WORKER_STATE_STARTED, WORKER_STATE_SHUTDOWN)) {
-            // workerState can be 0 or 2 at this moment - let it always be 2.
-            if (WORKER_STATE_UPDATER.getAndSet(this, WORKER_STATE_SHUTDOWN) != WORKER_STATE_SHUTDOWN) {
-
-            }
-
-            return Collections.emptySet();
+        if (!set(WORKER_STARTED, WORKER_SHUTDOWN)) {
+            return null;
         }
-
-        try {
-            boolean interrupted = false;
-            while (workerThread.isAlive()) {
-                workerThread.interrupt();
-                try {
-                    workerThread.join(100);
-                } catch (InterruptedException ignored) {
-                    interrupted = true;
-                }
+        boolean interrupted = false;
+        while (workerThread.isAlive()) {
+            workerThread.interrupt();
+            try {
+                workerThread.join(100);
+            } catch (InterruptedException ignored) {
+                interrupted = true;
             }
-
-            if (interrupted) {
-                Thread.currentThread().interrupt();
-            }
-        } finally {
-
         }
-        return worker.unprocessedTimeouts();
+        if (interrupted) {
+            Thread.currentThread().interrupt();
+        }
+        return unProcess;
     }
 
-    private final class Worker implements Runnable {
-        private final Set<TimerTask> unprocessedTimeouts = new HashSet<>();
-
-        private long tick;
-
-        @Override
-        public void run() {
-            startTime = System.nanoTime();
-            if (startTime == 0) {
-                startTime = 1;
-            }
-            startTimeInitialized.countDown();
-
-            do {
-                final long deadline = waitForNextTick();
-                if (deadline > 0) {
-                    int idx = (int)(tick & mask);
-                    processCancelledTasks();
-                    TimerBucket bucket = buckets[idx];
-                    transferTimeoutsToBuckets();
-                    bucket.expireTimeouts(deadline);
-                    tick++;
-                }
-            } while (WORKER_STATE_UPDATER.get(TimerWheel.this) == WORKER_STATE_STARTED);
-
-            for (TimerBucket bucket : buckets) {
-                bucket.clearTimeouts(unprocessedTimeouts);
-            }
-            for (;;) {
-                TimerTask timeout = timeouts.poll();
-                if (timeout == null) {
-                    break;
-                }
-                if (!timeout.isCancelled()) {
-                    unprocessedTimeouts.add(timeout);
-                }
-            }
-            processCancelledTasks();
-        }
-
-        private void transferTimeoutsToBuckets() {
-
-            for (int i = 0; i < 100000; i++) {
-                TimerTask timeout = timeouts.poll();
-                if (timeout == null) {
-                    // all processed
-                    break;
-                }
-                if (timeout.state() == TimerTask.ST_CANCELLED) {
-                    continue;
-                }
-
-                long calculated = timeout.deadline / tickDuration;
-                timeout.remainingRounds = (calculated - tick) / buckets.length;
-
-                final long ticks = Math.max(calculated, tick); // Ensure we don't schedule for past.
-                int stopIndex = (int)(ticks & mask);
-
-                TimerBucket bucket = buckets[stopIndex];
-                bucket.addTimeout(timeout);
-            }
-        }
-
-        private void processCancelledTasks() {
-            for (;;) {
-                TimerTask timeout = cancels.poll();
-                if (timeout == null) {
-                    break;
-                }
-                try {
-                    timeout.remove();
-                } catch (Throwable t) {
-
-                }
-            }
-        }
-
-        private long waitForNextTick() {
-            long deadline = tickDuration * (tick + 1);
-
-            for (;;) {
-                final long currentTime = System.nanoTime() - startTime;
-                long sleepTimeMs = (deadline - currentTime + 999999) / 1000000;
-
-                if (sleepTimeMs <= 0) {
-                    if (currentTime == Long.MIN_VALUE) {
-                        return -Long.MAX_VALUE;
-                    } else {
-                        return currentTime;
-                    }
-                }
-                if (PlatformDependent.isWindows()) {
-                    sleepTimeMs = sleepTimeMs / 10 * 10;
-                    if (sleepTimeMs == 0) {
-                        sleepTimeMs = 1;
-                    }
-                }
-
-                try {
-                    Thread.sleep(sleepTimeMs);
-                } catch (InterruptedException ignored) {
-                    if (WORKER_STATE_UPDATER.get(TimerWheel.this) == WORKER_STATE_SHUTDOWN) {
-                        return Long.MIN_VALUE;
-                    }
-                }
-            }
-        }
-
-        public Set<TimerTask> unprocessedTimeouts() {
-            return Collections.unmodifiableSet(unprocessedTimeouts);
-        }
+    private boolean set(int o, int n) {
+        return workerState.compareAndSet(o, n);
     }
 
 }

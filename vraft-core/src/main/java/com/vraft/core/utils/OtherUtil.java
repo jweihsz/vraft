@@ -1,4 +1,4 @@
-package com.vraft.common;
+package com.vraft.core.utils;
 
 /**
  * @author jweihsz

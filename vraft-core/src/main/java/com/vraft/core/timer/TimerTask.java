@@ -1,65 +1,56 @@
 package com.vraft.core.timer;
 
-import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
+import static com.vraft.core.timer.TimerConsts.*;
+
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+
+import io.netty.util.Recycler.Handle;
 
 /**
  * @author jweihsz
  * @version 2024/2/7 20:55
  **/
 public class TimerTask {
-
-    public static final int ST_INIT = 0;
-    public static final int ST_EXPIRED = 2;
-    public static final int ST_CANCELLED = 1;
-    private volatile int state = ST_INIT;
-    public long deadline;
-    public long remainingRounds;
-    public TimerTask next, prev;
+    public Object taskCtx;
     public TimerWheel wheel;
     public TimerBucket bucket;
-    private Object param;
-    private Consumer<TimerTask> apply;
-    private static final AtomicIntegerFieldUpdater<TimerTask> STATE_UPDATER;
+    public TimerTask next, prev;
+    public Consumer<TimerTask> apply;
+    public long deadline, remaining;
+    private final AtomicInteger state;
+    public transient Handle<TimerTask> handle;
 
-    public TimerTask() {}
-
-    public TimerTask(TimerWheel wheel) {
-        this.wheel = wheel;
+    public TimerTask() {
+        this.state = new AtomicInteger(ST_INIT);
     }
 
-    static {
-        STATE_UPDATER = AtomicIntegerFieldUpdater.newUpdater(TimerTask.class, "state");
-    }
-
-    public void setBucket(TimerBucket bucket) {
-        this.bucket = bucket;
+    public TimerTask(Handle<TimerTask> handle) {
+        this.handle = handle;
+        this.state = new AtomicInteger(ST_INIT);
     }
 
     public boolean cancel() {
-        if (compareAndSetState(ST_INIT, ST_CANCELLED)) {
-            wheel.getCancels().add(this);
+        if (set(ST_INIT, ST_CANCELLED)) {
+            wheel.addCancel(this);
             return true;
         } else {
             return false;
         }
     }
 
-    void remove() {
-        TimerBucket bucket = this.bucket;
-        if (bucket != null) {
+    public void remove() {
+        try {
             bucket.remove(this);
-        } else {
             wheel.decPending();
+            recycle();
+        } catch (Exception ex) {
+            ex.printStackTrace();
         }
     }
 
-    public boolean compareAndSetState(int expected, int state) {
-        return STATE_UPDATER.compareAndSet(this, expected, state);
-    }
-
     public int state() {
-        return state;
+        return state.get();
     }
 
     public boolean isCancelled() {
@@ -71,16 +62,28 @@ public class TimerTask {
     }
 
     public void expire() {
-        if (!compareAndSetState(ST_INIT, ST_EXPIRED)) {
+        if (!set(ST_INIT, ST_EXPIRED)) {
             return;
         }
-        try {
-            if (apply != null) {
-                apply.accept(this);
-            }
-        } catch (Throwable t) {
-
+        if (apply != null) {
+            apply.accept(this);
         }
+    }
+
+    private boolean set(int o, int n) {
+        return state.compareAndSet(o, n);
+    }
+
+    public void recycle() {
+        this.next = null;
+        this.prev = null;
+        this.apply = null;
+        this.deadline = 0L;
+        this.remaining = 0L;
+        this.taskCtx = null;
+        this.bucket = null;
+        this.state.set(ST_INIT);
+        this.handle.recycle(this);
     }
 
 }
