@@ -22,16 +22,6 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 public class NettyUtil {
     private NettyUtil() {}
 
-    public static Class<? extends ServerSocketChannel> serverCls() {
-        if (Epoll.isAvailable()) {
-            return EpollServerSocketChannel.class;
-        } else if (KQueue.isAvailable()) {
-            return KQueueServerSocketChannel.class;
-        } else {
-            return NioServerSocketChannel.class;
-        }
-    }
-
     public static Class<? extends SocketChannel> clientCls() {
         if (Epoll.isAvailable()) {
             return EpollSocketChannel.class;
@@ -39,6 +29,16 @@ public class NettyUtil {
             return KQueueSocketChannel.class;
         } else {
             return NioSocketChannel.class;
+        }
+    }
+
+    public static Class<? extends ServerSocketChannel> serverCls() {
+        if (Epoll.isAvailable()) {
+            return EpollServerSocketChannel.class;
+        } else if (KQueue.isAvailable()) {
+            return KQueueServerSocketChannel.class;
+        } else {
+            return NioServerSocketChannel.class;
         }
     }
 
