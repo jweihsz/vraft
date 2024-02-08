@@ -53,7 +53,7 @@ public class NettyCommon {
         }
     }
 
-    public static EventLoopGroup newEventLoopGroup(int nThreads) {
+    public static EventLoopGroup eventLoop(int nThreads) {
         if (Epoll.isAvailable()) {
             EpollEventLoopGroup epoll = null;
             epoll = new EpollEventLoopGroup(nThreads);
