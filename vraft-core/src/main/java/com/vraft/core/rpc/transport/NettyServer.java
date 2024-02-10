@@ -32,7 +32,7 @@ public class NettyServer implements LifeCycle {
     @Override
     public void startup() throws Exception {
         if (bd.getWire() == RpcConsts.TCP) {
-            this.channel = newTcpChannel(bd);
+            this.channel = newTcpServer(bd);
         } else if (bd.getWire() == RpcConsts.UDP) {
             this.channel = null;
         }
@@ -51,7 +51,7 @@ public class NettyServer implements LifeCycle {
         }
     }
 
-    private Channel newTcpChannel(NettyBuilder bd) throws Exception {
+    private Channel newTcpServer(NettyBuilder bd) throws Exception {
         final ServerBootstrap b = new ServerBootstrap();
         boss = NettyCommon.eventLoop(bd.getBossNum());
         worker = NettyCommon.eventLoop(bd.getWorkerNum());
