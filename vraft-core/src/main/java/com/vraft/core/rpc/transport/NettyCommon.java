@@ -1,8 +1,12 @@
 package com.vraft.core.rpc.transport;
 
 import java.net.InetSocketAddress;
+import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
+import com.vraft.facade.rpc.RpcProcessor;
+import io.netty.channel.Channel;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.EpollEventLoopGroup;
@@ -17,6 +21,7 @@ import io.netty.channel.socket.ServerSocketChannel;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.AttributeKey;
 import io.netty.util.internal.ThreadLocalRandom;
 
@@ -28,9 +33,11 @@ public class NettyCommon {
     private NettyCommon() {}
 
     public static final AttributeKey<String> CHANNEL_KEY;
+    public static final Map<String, RpcProcessor<?>> PROCESSOR;
 
     static {
         CHANNEL_KEY = AttributeKey.valueOf("channel_key");
+        PROCESSOR = new ConcurrentHashMap<>();
     }
 
     public static Class<? extends SocketChannel> clientCls() {
@@ -80,6 +87,18 @@ public class NettyCommon {
             throw new RuntimeException();
         }
         return new InetSocketAddress(arr[0], Integer.parseInt(arr[1]));
+    }
+
+    public static InetSocketAddress localAddress(Channel ch) {
+        return (InetSocketAddress)ch.localAddress();
+    }
+
+    public static InetSocketAddress remoteAddress(Channel ch) {
+        return (InetSocketAddress)ch.remoteAddress();
+    }
+
+    public static IdleStateHandler newIdleHandler(int idle) {
+        return new IdleStateHandler(0, 0, idle);
     }
 
 }
