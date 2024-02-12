@@ -22,6 +22,8 @@ public class RpcConsts {
 
     public static short RPC_MAGIC = 0x1210;
 
+    public static byte INVALID_VALUE = (byte)(-1);
+
 }
 
 

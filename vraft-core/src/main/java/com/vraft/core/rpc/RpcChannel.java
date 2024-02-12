@@ -1,4 +1,4 @@
-package com.vraft.core.rpc.transport;
+package com.vraft.core.rpc;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -12,14 +12,14 @@ import lombok.Data;
  * @version 2024/2/7 17:26
  **/
 @Data
-public class NettyChannel {
+public class RpcChannel {
     private String key;
     private int maxSize;
     private final int groupSize = 8;
     private final Map<Long, Object>[] waitAck;
     private CopyOnWriteArrayList<Channel> chs;
 
-    public NettyChannel(String key, int maxSize) {
+    public RpcChannel(String key, int maxSize) {
         this.key = key;
         this.maxSize = maxSize;
         this.chs = new CopyOnWriteArrayList<>();

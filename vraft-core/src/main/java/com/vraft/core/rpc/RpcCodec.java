@@ -1,4 +1,4 @@
-package com.vraft.core.rpc.transport;
+package com.vraft.core.rpc;
 
 import java.util.List;
 
@@ -12,7 +12,7 @@ import io.netty.handler.codec.MessageToMessageEncoder;
  * @author jweihsz
  * @version 2024/2/10 12:15
  **/
-public class NettyCodec {
+public class RpcCodec {
 
     public static class Encoder extends MessageToMessageEncoder<ByteBuf> {
         @Override

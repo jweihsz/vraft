@@ -8,5 +8,5 @@ public interface RpcProcessor<T> {
 
     String uid();
 
-    Object handle(RpcCtx ctx, T req) throws Exception;
+    Object handle(Object ch, T req) throws Exception;
 }

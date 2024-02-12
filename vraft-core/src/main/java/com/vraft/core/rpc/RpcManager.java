@@ -1,4 +1,4 @@
-package com.vraft.core.rpc.transport;
+package com.vraft.core.rpc;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -10,7 +10,7 @@ import org.apache.logging.log4j.Logger;
  * @version 2024/2/7 17:31
  **/
 @NotThreadSafe
-public class NettyManager {
-    private final static Logger logger = LogManager.getLogger(NettyManager.class);
+public class RpcManager {
+    private final static Logger logger = LogManager.getLogger(RpcManager.class);
 
 }

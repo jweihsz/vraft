@@ -10,6 +10,7 @@ import lombok.Data;
 public class RpcMsgBase {
     private short magic;
     private int totalLen;
+
     private byte version;
     private byte msgType;
     private long msgId;

@@ -1,11 +1,10 @@
-package com.vraft.core.rpc.transport;
+package com.vraft.core.rpc;
 
 import java.net.InetSocketAddress;
-import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
 
-import com.vraft.facade.rpc.RpcProcessor;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.epoll.Epoll;
@@ -23,21 +22,20 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.AttributeKey;
+import io.netty.util.CharsetUtil;
 import io.netty.util.internal.ThreadLocalRandom;
 
 /**
  * @author jweihsz
  * @version 2024/2/6 16:51
  **/
-public class NettyCommon {
-    private NettyCommon() {}
+public class RpcCommon {
+    private RpcCommon() {}
 
     public static final AttributeKey<String> CHANNEL_KEY;
-    public static final Map<String, RpcProcessor<?>> PROCESSOR;
 
     static {
         CHANNEL_KEY = AttributeKey.valueOf("channel_key");
-        PROCESSOR = new ConcurrentHashMap<>();
     }
 
     public static Class<? extends SocketChannel> clientCls() {
@@ -101,4 +99,82 @@ public class NettyCommon {
         return new IdleStateHandler(0, 0, idle);
     }
 
+    private ByteBuf convert(String str) {
+        return Unpooled.copiedBuffer(str, CharsetUtil.UTF_8);
+    }
+
+
+    /* version(byte)|type(byte)|seq(long)|uid-size(int)|
+     * header-size(int)|body-size(int)|uid-content(bytes)|
+     * header-content(bytes)|body-content(bytes)
+     */
+
+    public static int RPC_MATE_SIZE = 1 + 1 + 8 + 4 + 4 + 4;
+
+    public static boolean checkRpcMate(ByteBuf bf) {
+        int total = bf.readableBytes();
+        return total >= RPC_MATE_SIZE;
+    }
+
+    public static int getRpcUidSize(ByteBuf bf) {
+        return bf.getInt(9/*1+1+8-1*/);
+    }
+
+    public static int getRpcUidIndex(ByteBuf bf) {
+        return RPC_MATE_SIZE - 1;
+    }
+
+    public static int getRpcHeaderSize(ByteBuf bf) {
+        return bf.getInt(13/*1+1+8+4-1*/);
+    }
+
+    public static int getRpcHeaderIndex(ByteBuf bf) {
+        return RPC_MATE_SIZE - 1 + getRpcUidSize(bf);
+    }
+
+    public static int getRpcBodySize(ByteBuf bf) {
+        return bf.getInt(17/*1+1+8+4+4-1*/);
+    }
+
+    public static int getRpcBodyIndex(ByteBuf bf) {
+        return RPC_MATE_SIZE - 1
+            + getRpcUidSize(bf) + getRpcHeaderSize(bf);
+    }
+
+    public static byte getRpcVer(ByteBuf bf) {
+        return bf.getByte(0);
+    }
+
+    public static int getRpcRq(ByteBuf bf) {
+        return bf.getByte(1) & 0x03;
+    }
+
+    public static int getRpcType(ByteBuf bf) {
+        return bf.getByte(1) & 0xFC;
+    }
+
+    public static long getRpcSeq(ByteBuf bf) {
+        return bf.getLong(2);
+    }
+
+    public static ByteBuf getRpcUid(ByteBuf bf) {
+        final int size = getRpcUidSize(bf);
+        final int index = getRpcUidIndex(bf);
+        return bf.slice(index, size);
+    }
+
+    public static ByteBuf getRpcHeader(ByteBuf bf) {
+        final int size = getRpcHeaderSize(bf);
+        final int index = getRpcHeaderIndex(bf);
+        return bf.slice(index, size);
+    }
+
+    public static ByteBuf getRpcBody(ByteBuf bf) {
+        final int size = getRpcBodySize(bf);
+        final int index = getRpcBodyIndex(bf);
+        return bf.slice(index, size);
+    }
+
 }
+
+
