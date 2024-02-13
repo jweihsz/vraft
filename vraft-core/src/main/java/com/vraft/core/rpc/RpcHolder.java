@@ -1,6 +1,5 @@
 package com.vraft.core.rpc;
 
-import com.vraft.facade.rpc.RpcConsts;
 import com.vraft.facade.rpc.RpcService;
 import com.vraft.facade.system.SystemCtx;
 import org.apache.logging.log4j.LogManager;
@@ -14,39 +13,35 @@ public class RpcHolder implements RpcService {
     private final static Logger logger = LogManager.getLogger(RpcHolder.class);
 
     private final SystemCtx sysCtx;
+    private final RpcServer rpcRaftServer;
+    private final RpcClient rpcRaftClient;
 
     public RpcHolder(SystemCtx sysCtx) {
         this.sysCtx = sysCtx;
+        this.rpcRaftClient = buildRpcRaftClient();
+        this.rpcRaftServer = buildRpcRaftServer();
     }
 
     @Override
-    public void startup() throws Exception {}
+    public void startup() throws Exception {
+        this.rpcRaftClient.startup();
+        this.rpcRaftServer.startup();
+    }
 
     @Override
-    public void shutdown() {}
-
-    private RpcServer serverInstance() {
-        RpcBuilder b = raftServerBuilder();
-        return new RpcServer(b);
+    public void shutdown() {
+        this.rpcRaftClient.shutdown();
+        this.rpcRaftServer.shutdown();
     }
 
-    private RpcClient clientInstance() {
-        RpcBuilder b = raftClientBuilder();
-        return new RpcClient(b);
+    private RpcServer buildRpcRaftServer() {
+
+        return null;
     }
 
-    private RpcBuilder raftServerBuilder() {
-        RpcBuilder b = new RpcBuilder();
-        b.setBossNum(1).setWorkerNum(8);
-        b.setType(RpcConsts.SERVER).setWire(RpcConsts.TCP);
-        return b;
-    }
+    private RpcClient buildRpcRaftClient() {
 
-    private RpcBuilder raftClientBuilder() {
-        RpcBuilder b = new RpcBuilder();
-        b.setBossNum(4);
-        b.setType(RpcConsts.CLIENT).setWire(RpcConsts.TCP);
-        return b;
+        return null;
     }
 
 }
