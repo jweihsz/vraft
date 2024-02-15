@@ -5,7 +5,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.vraft.core.rpc.RpcInitializer.ClientInitializer;
-import com.vraft.facade.common.LifeCycle;
+import com.vraft.facade.rpc.RpcBuilder;
+import com.vraft.facade.rpc.RpcClient;
 import com.vraft.facade.rpc.RpcConsts;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
@@ -18,8 +19,8 @@ import org.apache.logging.log4j.Logger;
  * @author jweihsz
  * @version 2024/2/8 22:37
  **/
-public class RpcClient extends RpcAbstract implements LifeCycle {
-    private final static Logger logger = LogManager.getLogger(RpcClient.class);
+public class RpcClientImpl extends RpcAbstract implements RpcClient {
+    private final static Logger logger = LogManager.getLogger(RpcClientImpl.class);
 
     private Bootstrap bootstrap;
     private EventLoopGroup group;
@@ -27,7 +28,7 @@ public class RpcClient extends RpcAbstract implements LifeCycle {
 
     private final Map<String, Channel> pools;
 
-    public RpcClient(RpcBuilder bd) {
+    public RpcClientImpl(RpcBuilder bd) {
         this.bd = bd;
         this.pools = new ConcurrentHashMap<>();
     }
@@ -69,5 +70,4 @@ public class RpcClient extends RpcAbstract implements LifeCycle {
         b.handler(new ClientInitializer(this));
         return b;
     }
-
 }

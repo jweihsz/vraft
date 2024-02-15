@@ -1,4 +1,4 @@
-package com.vraft.core.rpc;
+package com.vraft.facade.rpc;
 
 /**
  * @author jweihsz

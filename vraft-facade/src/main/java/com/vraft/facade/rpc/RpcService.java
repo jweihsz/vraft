@@ -8,9 +8,7 @@ import com.vraft.facade.common.LifeCycle;
  **/
 public interface RpcService extends LifeCycle {
 
-    default void unregisterProcessor(String uid) {}
+    default RpcServer rpcRaftServer() {return null;}
 
-    default RpcProcessor<?> getProcessor(String uid) {return null;}
-
-    default void registerProcessor(String uid, RpcProcessor<?> processor) {}
+    default RpcClient rpcRaftClient() {return null;}
 }

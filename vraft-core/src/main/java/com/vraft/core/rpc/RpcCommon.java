@@ -99,7 +99,7 @@ public class RpcCommon {
         return new IdleStateHandler(0, 0, idle);
     }
 
-    private ByteBuf convert(String str) {
+    public static ByteBuf convert(String str) {
         return Unpooled.copiedBuffer(str, CharsetUtil.UTF_8);
     }
 

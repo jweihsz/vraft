@@ -20,12 +20,12 @@ public class RpcInitializer {
     private final static Logger logger = LogManager.getLogger(RpcInitializer.class);
 
     public static class ClientInitializer extends ChannelInitializer<SocketChannel> {
-        private final RpcClient rpcClient;
+        private final RpcClientImpl rpcClientImpl;
         private final RpcClientHandler handler;
 
-        public ClientInitializer(RpcClient rpcClient) {
-            this.rpcClient = rpcClient;
-            this.handler = new RpcClientHandler(rpcClient);
+        public ClientInitializer(RpcClientImpl rpcClientImpl) {
+            this.rpcClientImpl = rpcClientImpl;
+            this.handler = new RpcClientHandler(rpcClientImpl);
         }
 
         @Override
@@ -39,12 +39,12 @@ public class RpcInitializer {
     }
 
     public static class ServerInitializer extends ChannelInitializer<SocketChannel> {
-        private final RpcServer rpcServer;
+        private final RpcServerImpl rpcServerImpl;
         private final RpcServerHandler handler;
 
-        public ServerInitializer(RpcServer rpcServer) {
-            this.rpcServer = rpcServer;
-            this.handler = new RpcServerHandler(rpcServer);
+        public ServerInitializer(RpcServerImpl rpcServerImpl) {
+            this.rpcServerImpl = rpcServerImpl;
+            this.handler = new RpcServerHandler(rpcServerImpl);
         }
 
         @Override
@@ -59,10 +59,10 @@ public class RpcInitializer {
 
     @Sharable
     public static class RpcServerHandler extends ChannelDuplexHandler {
-        private final RpcServer rpcServer;
+        private final RpcServerImpl rpcServerImpl;
 
-        public RpcServerHandler(RpcServer rpcServer) {
-            this.rpcServer = rpcServer;
+        public RpcServerHandler(RpcServerImpl rpcServerImpl) {
+            this.rpcServerImpl = rpcServerImpl;
         }
 
         @Override
@@ -98,10 +98,10 @@ public class RpcInitializer {
     @Sharable
     public static class RpcClientHandler extends ChannelDuplexHandler {
 
-        private final RpcClient rpcClient;
+        private final RpcClientImpl rpcClientImpl;
 
-        public RpcClientHandler(RpcClient rpcClient) {
-            this.rpcClient = rpcClient;
+        public RpcClientHandler(RpcClientImpl rpcClientImpl) {
+            this.rpcClientImpl = rpcClientImpl;
         }
 
         @Override

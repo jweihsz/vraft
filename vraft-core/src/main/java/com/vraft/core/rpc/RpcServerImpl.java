@@ -1,8 +1,9 @@
 package com.vraft.core.rpc;
 
 import com.vraft.core.rpc.RpcInitializer.ServerInitializer;
-import com.vraft.facade.common.LifeCycle;
+import com.vraft.facade.rpc.RpcBuilder;
 import com.vraft.facade.rpc.RpcConsts;
+import com.vraft.facade.rpc.RpcServer;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelOption;
@@ -14,14 +15,14 @@ import org.apache.logging.log4j.Logger;
  * @author jweihsz
  * @version 2024/2/8 22:37
  **/
-public class RpcServer extends RpcAbstract implements LifeCycle {
-    private final static Logger logger = LogManager.getLogger(RpcServer.class);
+public class RpcServerImpl extends RpcAbstract implements RpcServer {
+    private final static Logger logger = LogManager.getLogger(RpcServerImpl.class);
 
     private Channel channel;
     private final RpcBuilder bd;
     private EventLoopGroup boss, worker;
 
-    public RpcServer(RpcBuilder bd) {
+    public RpcServerImpl(RpcBuilder bd) {
         this.bd = bd;
         check(bd);
     }

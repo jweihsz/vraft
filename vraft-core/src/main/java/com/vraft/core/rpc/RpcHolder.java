@@ -1,5 +1,7 @@
 package com.vraft.core.rpc;
 
+import com.vraft.facade.rpc.RpcClient;
+import com.vraft.facade.rpc.RpcServer;
 import com.vraft.facade.rpc.RpcService;
 import com.vraft.facade.system.SystemCtx;
 import org.apache.logging.log4j.LogManager;
@@ -32,6 +34,16 @@ public class RpcHolder implements RpcService {
     public void shutdown() {
         this.rpcRaftClient.shutdown();
         this.rpcRaftServer.shutdown();
+    }
+
+    @Override
+    public RpcServer rpcRaftServer() {
+        return rpcRaftServer;
+    }
+
+    @Override
+    public RpcClient rpcRaftClient() {
+        return rpcRaftClient;
     }
 
     private RpcServer buildRpcRaftServer() {

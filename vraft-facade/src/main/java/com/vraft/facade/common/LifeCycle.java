@@ -8,9 +8,7 @@ public interface LifeCycle {
 
     default void shutdown() {}
 
-    default String getName() {
-        return "";
-    }
+    default String getName() {return "";}
 
     default void init() throws Exception {}
 
