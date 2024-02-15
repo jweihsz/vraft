@@ -1,7 +1,7 @@
 package com.vraft.core.pool;
 
+import com.vraft.core.rpc.RpcRequest;
 import com.vraft.core.timer.TimerTask;
-
 import io.netty.util.Recycler;
 
 /**
@@ -15,6 +15,13 @@ public class ObjectsPool {
         @Override
         protected TimerTask newObject(Handle<TimerTask> handle) {
             return new TimerTask(handle);
+        }
+    };
+
+    public static final Recycler<RpcRequest> RPC_REQUEST_RECYCLER = new Recycler<RpcRequest>() {
+        @Override
+        protected RpcRequest newObject(Handle<RpcRequest> handle) {
+            return new RpcRequest(handle);
         }
     };
 }

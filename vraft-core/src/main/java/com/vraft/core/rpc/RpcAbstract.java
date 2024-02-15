@@ -32,4 +32,9 @@ public abstract class RpcAbstract {
         PROCESSOR.put(bf, processor);
     }
 
+    public void invokeOneway(Object channel, byte[] header,
+        byte[] body, long timeout) throws Exception {
+
+    }
+
 }

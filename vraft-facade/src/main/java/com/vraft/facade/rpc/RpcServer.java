@@ -6,11 +6,6 @@ import com.vraft.facade.common.LifeCycle;
  * @author jweihsz
  * @version 2024/2/13 10:32
  **/
-public interface RpcServer extends LifeCycle {
+public interface RpcServer extends LifeCycle, RpcRemoting {
 
-    void unregisterProcessor(String uid);
-
-    RpcProcessor<?> getProcessor(Object uid);
-
-    void registerProcessor(String uid, RpcProcessor<?> processor);
 }
