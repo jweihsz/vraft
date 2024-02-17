@@ -41,7 +41,7 @@ public class TimerTask {
         }
     }
 
-    private void remove() {
+    public void remove() {
         try {
             bucket.remove(this);
             wheel.decPending();

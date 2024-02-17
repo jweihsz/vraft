@@ -55,7 +55,8 @@ public abstract class RpcAbstract {
         return (byte)((type & 0xFC) | (rq & 0x03));
     }
 
-    public ByteBuf buildPkg(int rq, int ty, String uid, byte[] header, byte[] body) {
+    public ByteBuf buildPkg(int rq, int ty, long id,
+        String uid, byte[] header, byte[] body) {
         int totalLen = RpcCommon.RPC_MATE_SIZE;
         byte[] bodyBuf, uidBuf, headerBuf;
         if (body == null) {
@@ -82,7 +83,7 @@ public abstract class RpcAbstract {
         mate.writeInt(totalLen);
         mate.writeByte(RpcConsts.RPC_VERSION);
         mate.writeByte(flag);
-        mate.writeLong(msgId());
+        mate.writeLong(id);
         mate.writeInt(uidBuf.length);
         mate.writeInt(headerBuf.length);
         mate.writeInt(bodyBuf.length);
