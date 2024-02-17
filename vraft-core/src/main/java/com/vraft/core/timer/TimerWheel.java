@@ -1,19 +1,20 @@
 package com.vraft.core.timer;
 
-import static com.vraft.core.timer.TimerConsts.*;
-
 import java.util.Queue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.vraft.core.utils.MathUtil;
+import com.vraft.core.utils.OtherUtil;
+import io.netty.util.internal.PlatformDependent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.vraft.core.utils.MathUtil;
-import com.vraft.core.utils.OtherUtil;
-
-import io.netty.util.internal.PlatformDependent;
+import static com.vraft.core.timer.TimerConsts.ST_CANCELLED;
+import static com.vraft.core.timer.TimerConsts.WORKER_INIT;
+import static com.vraft.core.timer.TimerConsts.WORKER_SHUTDOWN;
+import static com.vraft.core.timer.TimerConsts.WORKER_STARTED;
 
 /**
  * @author jweihsz
@@ -22,9 +23,9 @@ import io.netty.util.internal.PlatformDependent;
 public class TimerWheel {
     private final static Logger logger = LogManager.getLogger(TimerWheel.class);
 
+    private Thread workerThread;
     private final long maxPending;
     private final long tickDuration;
-    private final Thread workerThread;
     private final AtomicLong pendingNum;
     private final TimerBucket[] buckets;
     private final Queue<TimerTask> cancels;
@@ -42,7 +43,38 @@ public class TimerWheel {
         this.unProcess = PlatformDependent.newMpscQueue();
         this.tickDuration = fitTickDuration(tickDuration);
         this.workerState = new AtomicInteger(WORKER_INIT);
-        this.workerThread = runWheel();
+
+    }
+
+    public void startup() {
+        if (!set(WORKER_INIT, WORKER_STARTED)) {return;}
+        Thread t = new Thread(this::doWheel);
+        t.setName("wheel-timer-thread");
+        t.setDaemon(false);
+        t.start();
+        this.workerThread = t;
+    }
+
+    public Queue<TimerTask> shutdown() {
+        if (Thread.currentThread() == workerThread) {
+            throw new RuntimeException();
+        }
+        if (!set(WORKER_STARTED, WORKER_SHUTDOWN)) {
+            return null;
+        }
+        boolean interrupted = false;
+        while (workerThread.isAlive()) {
+            workerThread.interrupt();
+            try {
+                workerThread.join(100);
+            } catch (InterruptedException ignored) {
+                interrupted = true;
+            }
+        }
+        if (interrupted) {
+            Thread.currentThread().interrupt();
+        }
+        return unProcess;
     }
 
     private long fitTickDuration(long tickDuration) {
@@ -61,12 +93,9 @@ public class TimerWheel {
     }
 
     private void processCancels() {
-        TimerTask task;
-        for (;;) {
-            task = cancels.poll();
-            if (task == null) {
-                break;
-            }
+        for (; ; ) {
+            TimerTask task = cancels.poll();
+            if (task == null) {break;}
             task.remove();
         }
     }
@@ -90,7 +119,7 @@ public class TimerWheel {
             bucket.clearTimeouts(unProcess);
         }
         TimerTask timeout = null;
-        for (;;) {
+        for (; ; ) {
             timeout = timeouts.poll();
             if (timeout == null) {
                 break;
@@ -102,12 +131,8 @@ public class TimerWheel {
     }
 
     private boolean moveNode(TimerTask task) {
-        if (task == null) {
-            return false;
-        }
-        if (task.state() == ST_CANCELLED) {
-            return true;
-        }
+        if (task == null) {return false;}
+        if (task.state() == ST_CANCELLED) {return true;}
         long calculated = task.deadline / tickDuration;
         task.remaining = (calculated - curTick) / buckets.length;
         final long ticks = Math.max(calculated, curTick);
@@ -118,17 +143,6 @@ public class TimerWheel {
         return true;
     }
 
-    private Thread runWheel() {
-        if (!set(WORKER_INIT, WORKER_STARTED)) {
-            return null;
-        }
-        Thread t = new Thread(this::doWheel);
-        t.setName("wheel-timer-thread");
-        t.setDaemon(false);
-        t.start();
-        return t;
-    }
-
     private void doWheel() {
         boolean status = false;
         startTime = System.nanoTime();
@@ -136,9 +150,7 @@ public class TimerWheel {
         while (!Thread.interrupted()) {
             long expire = tickDuration * (curTick + 1);
             long deadline = waitNextTick(expire);
-            if (deadline <= 0) {
-                continue;
-            }
+            if (deadline <= 0) {continue;}
             int idx = (int)(curTick & (buckets.length - 1));
             processCancels();
             TimerBucket bucket = buckets[idx];
@@ -183,41 +195,15 @@ public class TimerWheel {
 
     public boolean addTimeout(TimerTask task, long delay) {
         long next = pendingNum.get() + 1;
-        if (maxPending > 0 && next > maxPending) {
-            return false;
-        }
+        if (maxPending > 0 && next > maxPending) {return false;}
         pendingNum.incrementAndGet();
         TimeUnit unit = TimeUnit.MILLISECONDS;
         long total = System.nanoTime() + unit.toNanos(delay);
         long deadline = total - startTime;
-        if (delay > 0 && deadline < 0) {
-            deadline = Long.MAX_VALUE;
-        }
+        if (delay > 0 && deadline < 0) {deadline = Long.MAX_VALUE;}
         task.deadline = deadline;
         timeouts.add(task);
         return true;
-    }
-
-    public Queue<TimerTask> stop() {
-        if (Thread.currentThread() == workerThread) {
-            throw new RuntimeException();
-        }
-        if (!set(WORKER_STARTED, WORKER_SHUTDOWN)) {
-            return null;
-        }
-        boolean interrupted = false;
-        while (workerThread.isAlive()) {
-            workerThread.interrupt();
-            try {
-                workerThread.join(100);
-            } catch (InterruptedException ignored) {
-                interrupted = true;
-            }
-        }
-        if (interrupted) {
-            Thread.currentThread().interrupt();
-        }
-        return unProcess;
     }
 
     private boolean set(int o, int n) {

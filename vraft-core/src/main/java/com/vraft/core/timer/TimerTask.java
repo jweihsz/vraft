@@ -1,22 +1,24 @@
 package com.vraft.core.timer;
 
-import static com.vraft.core.timer.TimerConsts.*;
-
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import io.netty.util.Recycler.Handle;
+
+import static com.vraft.core.timer.TimerConsts.ST_CANCELLED;
+import static com.vraft.core.timer.TimerConsts.ST_EXPIRED;
+import static com.vraft.core.timer.TimerConsts.ST_INIT;
 
 /**
  * @author jweihsz
  * @version 2024/2/7 20:55
  **/
 public class TimerTask {
-    public Object taskCtx;
+    public Object taskParam;
     public TimerWheel wheel;
     public TimerBucket bucket;
     public TimerTask next, prev;
-    public Consumer<TimerTask> apply;
+    public Consumer<Object> apply;
     public long deadline, remaining;
     private final AtomicInteger state;
     public transient Handle<TimerTask> handle;
@@ -39,7 +41,7 @@ public class TimerTask {
         }
     }
 
-    public void remove() {
+    private void remove() {
         try {
             bucket.remove(this);
             wheel.decPending();
@@ -62,12 +64,8 @@ public class TimerTask {
     }
 
     public void expire() {
-        if (!set(ST_INIT, ST_EXPIRED)) {
-            return;
-        }
-        if (apply != null) {
-            apply.accept(this);
-        }
+        if (!set(ST_INIT, ST_EXPIRED)) {return;}
+        if (apply != null) {apply.accept(taskParam);}
     }
 
     private boolean set(int o, int n) {
@@ -80,7 +78,7 @@ public class TimerTask {
         this.apply = null;
         this.deadline = 0L;
         this.remaining = 0L;
-        this.taskCtx = null;
+        this.taskParam = null;
         this.bucket = null;
         this.state.set(ST_INIT);
         this.handle.recycle(this);

@@ -1,6 +1,7 @@
 package com.vraft.facade.system;
 
 import com.vraft.facade.rpc.RpcService;
+import com.vraft.facade.timer.TimerService;
 import com.vraft.facade.uid.UidService;
 import lombok.Data;
 
@@ -12,4 +13,5 @@ import lombok.Data;
 public class SystemCtx {
     private UidService uidService;
     private RpcService raftRpcService;
+    private TimerService timerService;
 }
