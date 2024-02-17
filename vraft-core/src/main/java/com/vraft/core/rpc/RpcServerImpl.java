@@ -4,6 +4,8 @@ import com.vraft.core.rpc.RpcInitializer.ServerInitializer;
 import com.vraft.facade.rpc.RpcBuilder;
 import com.vraft.facade.rpc.RpcConsts;
 import com.vraft.facade.rpc.RpcServer;
+import com.vraft.facade.system.SystemCtx;
+import com.vraft.facade.uid.UidService;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelOption;
@@ -20,11 +22,12 @@ public class RpcServerImpl extends RpcAbstract implements RpcServer {
 
     private Channel channel;
     private final RpcBuilder bd;
+    private final SystemCtx sysCtx;
     private EventLoopGroup boss, worker;
 
-    public RpcServerImpl(RpcBuilder bd) {
+    public RpcServerImpl(SystemCtx sysCtx, RpcBuilder bd) {
         this.bd = bd;
-        check(bd);
+        this.sysCtx = sysCtx;
     }
 
     @Override
@@ -47,6 +50,12 @@ public class RpcServerImpl extends RpcAbstract implements RpcServer {
         if (worker != null) {
             worker.shutdownGracefully().syncUninterruptibly();
         }
+    }
+
+    @Override
+    public long msgId() {
+        final UidService uidService = sysCtx.getUidService();
+        return uidService.getRpcIdGenerator().nextId();
     }
 
     private Channel newTcpServer(RpcBuilder bd) throws Exception {

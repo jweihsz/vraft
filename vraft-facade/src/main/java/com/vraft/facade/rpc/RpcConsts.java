@@ -21,6 +21,7 @@ public class RpcConsts {
     public static int RPC_CLUSTER_MSG = 2;
 
     public static short RPC_MAGIC = 0x1210;
+    public static byte RPC_VERSION = 0x01;
 
     public static byte INVALID_VALUE = (byte)(-1);
 

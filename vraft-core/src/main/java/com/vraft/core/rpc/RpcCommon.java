@@ -32,9 +32,11 @@ import io.netty.util.internal.ThreadLocalRandom;
 public class RpcCommon {
     private RpcCommon() {}
 
+    public static final byte[] EMPTY_BUFFER;
     public static final AttributeKey<String> CHANNEL_KEY;
 
     static {
+        EMPTY_BUFFER = new byte[0];
         CHANNEL_KEY = AttributeKey.valueOf("channel_key");
     }
 
@@ -150,7 +152,7 @@ public class RpcCommon {
     }
 
     public static int getRpcType(ByteBuf bf) {
-        return bf.getByte(1) & 0xFC;
+        return bf.getByte(1) & 0xFC >> 2;
     }
 
     public static long getRpcSeq(ByteBuf bf) {

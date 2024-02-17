@@ -8,6 +8,8 @@ import com.vraft.core.rpc.RpcInitializer.ClientInitializer;
 import com.vraft.facade.rpc.RpcBuilder;
 import com.vraft.facade.rpc.RpcClient;
 import com.vraft.facade.rpc.RpcConsts;
+import com.vraft.facade.system.SystemCtx;
+import com.vraft.facade.uid.UidService;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -25,11 +27,13 @@ public class RpcClientImpl extends RpcAbstract implements RpcClient {
     private Bootstrap bootstrap;
     private EventLoopGroup group;
     private final RpcBuilder bd;
+    private final SystemCtx sysCtx;
 
     private final Map<String, Channel> pools;
 
-    public RpcClientImpl(RpcBuilder bd) {
+    public RpcClientImpl(SystemCtx sysCtx, RpcBuilder bd) {
         this.bd = bd;
+        this.sysCtx = sysCtx;
         this.pools = new ConcurrentHashMap<>();
     }
 
@@ -47,6 +51,12 @@ public class RpcClientImpl extends RpcAbstract implements RpcClient {
         if (group != null) {
             group.shutdownGracefully().syncUninterruptibly();
         }
+    }
+
+    @Override
+    public long msgId() {
+        final UidService uidService = sysCtx.getUidService();
+        return uidService.getRpcIdGenerator().nextId();
     }
 
     private void doConnect(Bootstrap bs, String host) {
@@ -70,4 +80,5 @@ public class RpcClientImpl extends RpcAbstract implements RpcClient {
         b.handler(new ClientInitializer(this));
         return b;
     }
+
 }
