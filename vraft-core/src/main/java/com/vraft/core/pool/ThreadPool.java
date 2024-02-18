@@ -18,8 +18,7 @@ public class ThreadPool {
     private final static int cpuNum = SystemUtil.getPhyCpuNum();
 
     static {
-        ACTOR = new ThreadPoolExecutor(
-            cpuNum, cpuNum, keepAlive,
+        ACTOR = new ThreadPoolExecutor(cpuNum, cpuNum, keepAlive,
             TimeUnit.MINUTES, new LinkedBlockingQueue<>());
     }
 

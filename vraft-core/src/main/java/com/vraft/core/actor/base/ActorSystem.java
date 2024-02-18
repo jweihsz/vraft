@@ -7,10 +7,9 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import io.netty.util.internal.PlatformDependent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import io.netty.util.internal.PlatformDependent;
 
 /**
  * @author jweihsz
@@ -38,26 +37,20 @@ public class ActorSystem {
 
     public void suspend(String actorPath) {
         Actor actor = actors.get(actorPath);
-        if (actor == null)
-            return;
-
+        if (actor == null) {return;}
         actor.suspend();
     }
 
     public void resume(String actorPath) {
         Actor actor = actors.get(actorPath);
-        if (actor == null) {
-            return;
-        }
+        if (actor == null) {return;}
         actor.resume();
         schedule(actor, false);
     }
 
     public <E> Actor<E> createOrGet(long actorId, Processor<E> processor) {
         Actor<E> actor = actors.get(actorId);
-        if (actor != null) {
-            return actor;
-        }
+        if (actor != null) {return actor;}
         Actor<E> add = new Actor<>(actorId, this, processor);
         Actor<E> old = actors.putIfAbsent(actorId, add);
         if (old == null) {
@@ -69,8 +62,7 @@ public class ActorSystem {
     }
 
     private <E> boolean schedule(Actor<E> actor, boolean hasMessageHint) {
-        if (!actor.canBeSchedule(hasMessageHint))
-            return false;
+        if (!actor.canBeSchedule(hasMessageHint)) { return false; }
         if (actor.setAsScheduled()) {
             actor.submitTs = System.currentTimeMillis();
             this.executor.execute(actor);
@@ -142,8 +134,7 @@ public class ActorSystem {
 
         private boolean canBeSchedule(boolean hasMessageHint) {
             int s = currentStatus();
-            if (s == Open || s == Scheduled)
-                return hasMessageHint || !queue.isEmpty();
+            if (s == Open || s == Scheduled) { return hasMessageHint || !queue.isEmpty(); }
             return false;
         }
 
@@ -151,34 +142,29 @@ public class ActorSystem {
             while (true) {
                 int s = currentStatus();
                 int next = s < suspendUnit ? s : s - suspendUnit;
-                if (updateStatus(s, next))
-                    return next < suspendUnit;
+                if (updateStatus(s, next)) { return next < suspendUnit; }
             }
         }
 
         public final void suspend() {
             while (true) {
                 int s = currentStatus();
-                if (updateStatus(s, s + suspendUnit))
-                    return;
+                if (updateStatus(s, s + suspendUnit)) { return; }
             }
         }
 
         final boolean setAsScheduled() {
             while (true) {
                 int s = currentStatus();
-                if ((s & shouldScheduleMask) != Open)
-                    return false;
-                if (updateStatus(s, s | Scheduled))
-                    return true;
+                if ((s & shouldScheduleMask) != Open) { return false; }
+                if (updateStatus(s, s | Scheduled)) { return true; }
             }
         }
 
         final void setAsIdle() {
             while (true) {
                 int s = currentStatus();
-                if (updateStatus(s, s & ~Scheduled))
-                    return;
+                if (updateStatus(s, s & ~Scheduled)) { return; }
             }
         }
 
@@ -229,10 +215,9 @@ public class ActorSystem {
                         break;
                     }
                 }
-                if (found == null)
-                    throw new IllegalStateException("Can't find instance of sun.misc.Unsafe");
-                else
+                if (found == null) { throw new IllegalStateException("Can't find instance of sun.misc.Unsafe"); } else {
                     instance = found;
+                }
             } catch (Throwable t) {
                 throw new ExceptionInInitializerError(t);
             }

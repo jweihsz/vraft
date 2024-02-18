@@ -14,10 +14,12 @@ public class UidHolder implements UidService {
 
     private final IdGenerator genRpcId;
     private final IdGenerator genUserId;
+    private final IdGenerator genActorId;
 
     public UidHolder() {
-        this.genRpcId = new SeqUid(1L);
-        this.genUserId = new SeqUid(1L);
+        this.genRpcId = new SeqUid();
+        this.genUserId = new SeqUid();
+        this.genActorId = new SeqUid();
     }
 
     @Override
@@ -28,5 +30,10 @@ public class UidHolder implements UidService {
     @Override
     public long genMsgId() {
         return genRpcId.nextId();
+    }
+
+    @Override
+    public long genActorId() {
+        return genActorId.nextId();
     }
 }

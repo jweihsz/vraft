@@ -10,4 +10,5 @@ public interface UidService {
 
     long genMsgId();
 
+    long genActorId();
 }

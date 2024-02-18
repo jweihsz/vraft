@@ -12,8 +12,12 @@ public class SeqUid implements IdGenerator {
 
     private final AtomicLong id;
 
+    public SeqUid() {
+        this.id = new AtomicLong(1L);
+    }
+    
     public SeqUid(long val) {
-        id = new AtomicLong(val);
+        this.id = new AtomicLong(val);
     }
 
     @Override
