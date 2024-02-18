@@ -66,7 +66,7 @@ public class TimerBucket {
 
     public void clearTimeouts(Queue<TimerTask> unProcess) {
         TimerTask task = null;
-        for (;;) {
+        for (; ; ) {
             if ((task = pollTimeout()) == null) {
                 return;
             }

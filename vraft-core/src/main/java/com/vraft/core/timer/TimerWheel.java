@@ -24,16 +24,17 @@ public class TimerWheel {
     private final static Logger logger = LogManager.getLogger(TimerWheel.class);
 
     private Thread workerThread;
-    private final long maxPending;
-    private final long tickDuration;
     private final AtomicLong pendingNum;
     private final TimerBucket[] buckets;
-    private final Queue<TimerTask> cancels;
-    private final Queue<TimerTask> timeouts;
-    private final Queue<TimerTask> unProcess;
     private final AtomicInteger workerState;
     private long curTick = 0, startTime = 1;
+    private final long maxPending, tickDuration;
+    private final Queue<TimerTask> cancels, timeouts, unProcess;
 
+    public TimerWheel(long maxPending) {
+        this(100, 512, maxPending);
+    }
+    
     public TimerWheel(long tickDuration, int ticksPerWheel, long maxPending) {
         this.maxPending = maxPending;
         this.buckets = createBucket(ticksPerWheel);
@@ -43,7 +44,6 @@ public class TimerWheel {
         this.unProcess = PlatformDependent.newMpscQueue();
         this.tickDuration = fitTickDuration(tickDuration);
         this.workerState = new AtomicInteger(WORKER_INIT);
-
     }
 
     public void startup() {
@@ -118,12 +118,9 @@ public class TimerWheel {
         for (TimerBucket bucket : buckets) {
             bucket.clearTimeouts(unProcess);
         }
-        TimerTask timeout = null;
         for (; ; ) {
-            timeout = timeouts.poll();
-            if (timeout == null) {
-                break;
-            }
+            TimerTask timeout = timeouts.poll();
+            if (timeout == null) {break;}
             if (!timeout.isCancelled()) {
                 unProcess.add(timeout);
             }

@@ -20,7 +20,7 @@ public class TimerHolder implements TimerService {
 
     public TimerHolder(SystemCtx sysCtx) {
         this.sysCtx = sysCtx;
-        this.commonTw = new TimerWheel(100, 512, 200_0000);
+        this.commonTw = new TimerWheel(200_0000);
     }
 
     @Override
@@ -35,9 +35,12 @@ public class TimerHolder implements TimerService {
 
     @Override
     public boolean removeTimeout(Object task) {
-        if (!(task instanceof TimerTask)) {return false;}
-        TimerTask tt = (TimerTask)task;
-        return tt.cancel();
+        if (task instanceof TimerTask) {
+            TimerTask tt = (TimerTask)task;
+            return tt.cancel();
+        } else {
+            return false;
+        }
     }
 
     @Override
@@ -49,5 +52,4 @@ public class TimerHolder implements TimerService {
         task.recycle();
         return null;
     }
-
 }
