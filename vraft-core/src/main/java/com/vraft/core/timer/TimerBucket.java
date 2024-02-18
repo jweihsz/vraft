@@ -18,8 +18,8 @@ public class TimerBucket {
         if (head == null) {
             head = tail = task;
         } else {
-            tail.next = task;
-            task.prev = tail;
+            tail.setNext(task);
+            task.setPrev(tail);
             tail = task;
         }
     }
@@ -27,28 +27,28 @@ public class TimerBucket {
     public void expireTimeouts(long deadline) {
         TimerTask task = head;
         while (task != null) {
-            TimerTask next = task.next;
-            if (task.remaining <= 0) {
+            TimerTask next = task.getNext();
+            if (task.getRemaining() <= 0) {
                 next = remove(task);
-                if (task.deadline <= deadline) {
+                if (task.getDeadline() <= deadline) {
                     task.expire();
                 }
             } else if (task.isCancelled()) {
                 next = remove(task);
             } else {
-                task.remaining--;
+                task.setRemaining(task.getRemaining() - 1);
             }
             task = next;
         }
     }
 
     public TimerTask remove(TimerTask task) {
-        TimerTask next = task.next;
-        if (task.prev != null) {
-            task.prev.next = next;
+        TimerTask next = task.getNext();
+        if (task.getPrev() != null) {
+            task.getPrev().setNext(next);
         }
-        if (task.next != null) {
-            task.next.prev = task.prev;
+        if (task.getNext() != null) {
+            task.getNext().setPrev(task.getPrev());
         }
         if (task == head) {
             if (task == tail) {
@@ -58,7 +58,7 @@ public class TimerBucket {
                 head = next;
             }
         } else if (task == tail) {
-            tail = task.prev;
+            tail = task.getPrev();
         }
         wheel.decPending();
         return next;
@@ -82,16 +82,16 @@ public class TimerBucket {
         if (head == null) {
             return null;
         }
-        TimerTask next = head.next;
+        TimerTask next = head.getNext();
         if (next == null) {
             tail = this.head = null;
         } else {
             this.head = next;
-            next.prev = null;
+            next.setPrev(null);
         }
-        head.next = null;
-        head.prev = null;
-        head.bucket = null;
+        head.setNext(null);
+        head.setPrev(null);
+        head.setBucket(null);
         return head;
     }
 }

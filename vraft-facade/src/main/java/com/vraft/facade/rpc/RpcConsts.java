@@ -15,7 +15,7 @@ public class RpcConsts {
 
     public static int RPC_ONE_WAY = 1;
     public static int RPC_TWO_WAY = 2;
-    public static int RPC_RESPONSE = 0;
+    public static int RPC_RESPONSE = 3;
 
     public static int RPC_ADMIN_MSG = 1;
     public static int RPC_CLUSTER_MSG = 2;
@@ -24,6 +24,18 @@ public class RpcConsts {
     public static byte RPC_VERSION = 0x01;
 
     public static byte INVALID_VALUE = (byte)(-1);
+
+    public static boolean isOneWay(byte type) {
+        return (type & 0x03) == RPC_ONE_WAY;
+    }
+
+    public static boolean isTwoWay(byte type) {
+        return (type & 0x03) == RPC_TWO_WAY;
+    }
+
+    public static boolean isResp(byte type) {
+        return (type & 0x03) == RPC_RESPONSE;
+    }
 
 }
 

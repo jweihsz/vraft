@@ -8,7 +8,4 @@ import com.vraft.facade.common.LifeCycle;
  **/
 public interface RpcService extends LifeCycle {
 
-    default RpcServer rpcRaftServer() {return null;}
-
-    default RpcClient rpcRaftClient() {return null;}
 }

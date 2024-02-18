@@ -4,6 +4,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import io.netty.util.Recycler.Handle;
+import lombok.Data;
 
 import static com.vraft.core.timer.TimerConsts.ST_CANCELLED;
 import static com.vraft.core.timer.TimerConsts.ST_EXPIRED;
@@ -13,15 +14,16 @@ import static com.vraft.core.timer.TimerConsts.ST_INIT;
  * @author jweihsz
  * @version 2024/2/7 20:55
  **/
+@Data
 public class TimerTask {
-    public Object taskParam;
-    public TimerWheel wheel;
-    public TimerBucket bucket;
-    public TimerTask next, prev;
-    public Consumer<Object> apply;
-    public long deadline, remaining;
+    private Object params;
+    private TimerWheel wheel;
+    private TimerBucket bucket;
+    private TimerTask next, prev;
+    private Consumer<Object> apply;
+    private long deadline, remaining;
     private final AtomicInteger state;
-    public transient Handle<TimerTask> handle;
+    private transient Handle<TimerTask> handle;
 
     public TimerTask() {
         this.state = new AtomicInteger(ST_INIT);
@@ -65,7 +67,7 @@ public class TimerTask {
 
     public void expire() {
         if (!set(ST_INIT, ST_EXPIRED)) {return;}
-        if (apply != null) {apply.accept(taskParam);}
+        if (apply != null) {apply.accept(params);}
     }
 
     private boolean set(int o, int n) {
@@ -78,7 +80,7 @@ public class TimerTask {
         this.apply = null;
         this.deadline = 0L;
         this.remaining = 0L;
-        this.taskParam = null;
+        this.params = null;
         this.bucket = null;
         this.state.set(ST_INIT);
         this.handle.recycle(this);

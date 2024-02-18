@@ -1,6 +1,7 @@
 package com.vraft.core.rpc;
 
 import java.net.InetSocketAddress;
+import java.util.Map;
 import java.util.Objects;
 
 import io.netty.buffer.ByteBuf;
@@ -21,6 +22,7 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.timeout.IdleStateHandler;
+import io.netty.util.AttributeKey;
 import io.netty.util.CharsetUtil;
 import io.netty.util.internal.ThreadLocalRandom;
 
@@ -38,6 +40,14 @@ public class RpcCommon {
     public static int RPC_MATE_SIZE = 1 + 1 + 8 + 4 + 4 + 4;
 
     public static final byte[] EMPTY_BUFFER = new byte[0];
+
+    public static final AttributeKey<Long> CH_KEY;
+    public static final AttributeKey<Map<Long, Object>> CH_PEND;
+
+    static {
+        CH_KEY = AttributeKey.valueOf("ch_key");
+        CH_PEND = AttributeKey.valueOf("ch_resp_pend");
+    }
 
     public static Class<? extends SocketChannel> clientCls() {
         if (Epoll.isAvailable()) {
@@ -98,6 +108,11 @@ public class RpcCommon {
 
     public static IdleStateHandler newIdleHandler(int idle) {
         return new IdleStateHandler(0, 0, idle);
+    }
+
+    public static long getUserId(Channel ch) {
+        if (ch == null) {return -1L;}
+        return ch.attr(RpcCommon.CH_KEY).get();
     }
 
     public static ByteBuf convert(String str) {

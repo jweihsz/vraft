@@ -46,8 +46,8 @@ public class TimerHolder implements TimerService {
     @Override
     public Object addTimeout(Consumer<Object> apply, Object param, long delay) {
         TimerTask task = ObjectsPool.TIMER_TASK_RECYCLER.get();
-        task.apply = apply;
-        task.taskParam = param;
+        task.setApply(apply);
+        task.setParams(param);
         if (commonTw.addTimeout(task, delay)) {return task;}
         task.recycle();
         return null;

@@ -5,7 +5,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.vraft.facade.system.SystemCtx;
 import io.netty.channel.Channel;
-import io.netty.util.AttributeKey;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -18,14 +17,6 @@ public class RpcManager {
 
     private final SystemCtx sysCtx;
     private final Map<Long, Channel> connects;
-
-    public static final AttributeKey<Long> CH_KEY;
-    public static final AttributeKey<Map<Long, Object>> CH_PEND;
-
-    static {
-        CH_KEY = AttributeKey.valueOf("ch_key");
-        CH_PEND = AttributeKey.valueOf("ch_resp_pend");
-    }
 
     public RpcManager(SystemCtx sysCtx) {
         this.sysCtx = sysCtx;
@@ -41,20 +32,20 @@ public class RpcManager {
     }
 
     public void removeChannel(Channel ch) {
-        long userId = ch.attr(CH_KEY).get();
+        long userId = ch.attr(RpcCommon.CH_KEY).get();
         connects.remove(userId);
     }
 
     public void addChannel(long userId, Channel ch) {
         Channel old = connects.put(userId, ch);
-        ch.attr(CH_KEY).set(userId);
-        ch.attr(CH_PEND).set(new ConcurrentHashMap<>());
+        ch.attr(RpcCommon.CH_KEY).set(userId);
+        ch.attr(RpcCommon.CH_PEND).set(new ConcurrentHashMap<>());
         if (old != null) {old.close();}
     }
 
     public Object removePendMsg(Channel ch, long msgId) {
         if (ch == null) {return null;}
-        return ch.attr(CH_PEND).get().remove(msgId);
+        return ch.attr(RpcCommon.CH_PEND).get().remove(msgId);
     }
 
     public Object removePendMsg(long userId, long msgId) {
@@ -65,7 +56,7 @@ public class RpcManager {
 
     public boolean addPendMsg(Channel ch, long msgId, Object obj) {
         if (ch == null) {return false;}
-        ch.attr(CH_PEND).get().put(msgId, obj);
+        ch.attr(RpcCommon.CH_PEND).get().put(msgId, obj);
         return true;
     }
 

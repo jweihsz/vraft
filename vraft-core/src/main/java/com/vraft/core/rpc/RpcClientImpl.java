@@ -1,12 +1,14 @@
 package com.vraft.core.rpc;
 
 import java.net.InetSocketAddress;
+import java.util.function.Consumer;
 
 import com.vraft.core.rpc.RpcInitializer.ClientInitializer;
 import com.vraft.facade.rpc.RpcBuilder;
 import com.vraft.facade.rpc.RpcClient;
 import com.vraft.facade.rpc.RpcConsts;
 import com.vraft.facade.system.SystemCtx;
+import com.vraft.facade.timer.TimerService;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -71,6 +73,27 @@ public class RpcClientImpl extends RpcAbstract implements RpcClient {
         InetSocketAddress a = RpcCommon.parser(host);
         final ChannelFuture future = bs.connect(a);
         return future.awaitUninterruptibly(3000) ? future.channel() : null;
+    }
+
+    @Override
+    public long genRpcMsgId() {
+        return sysCtx.getUidService().genMsgId();
+    }
+
+    @Override
+    public Object removePend(long userId, long msgId) {
+        return rpcMgr.removePendMsg(userId, msgId);
+    }
+
+    @Override
+    public boolean addPend(long userId, long msgId, Object obj) {
+        return rpcMgr.addPendMsg(userId, msgId, obj);
+    }
+
+    @Override
+    public Object startTimeout(Consumer<Object> apply, Object param, long delay) {
+        TimerService timerService = sysCtx.getTimerService();
+        return timerService.addTimeout(apply, param, delay);
     }
 
     private Bootstrap newTcpClient(RpcBuilder bd) throws Exception {

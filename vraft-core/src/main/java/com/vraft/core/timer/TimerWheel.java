@@ -34,7 +34,7 @@ public class TimerWheel {
     public TimerWheel(long maxPending) {
         this(100, 512, maxPending);
     }
-    
+
     public TimerWheel(long tickDuration, int ticksPerWheel, long maxPending) {
         this.maxPending = maxPending;
         this.buckets = createBucket(ticksPerWheel);
@@ -130,12 +130,12 @@ public class TimerWheel {
     private boolean moveNode(TimerTask task) {
         if (task == null) {return false;}
         if (task.state() == ST_CANCELLED) {return true;}
-        long calculated = task.deadline / tickDuration;
-        task.remaining = (calculated - curTick) / buckets.length;
+        long calculated = task.getDeadline() / tickDuration;
+        task.setRemaining((calculated - curTick) / buckets.length);
         final long ticks = Math.max(calculated, curTick);
         int stopIndex = (int)(ticks & (buckets.length - 1));
         TimerBucket bucket = buckets[stopIndex];
-        task.bucket = bucket;
+        task.setBucket(bucket);
         bucket.addTimeout(task);
         return true;
     }
@@ -197,8 +197,10 @@ public class TimerWheel {
         TimeUnit unit = TimeUnit.MILLISECONDS;
         long total = System.nanoTime() + unit.toNanos(delay);
         long deadline = total - startTime;
-        if (delay > 0 && deadline < 0) {deadline = Long.MAX_VALUE;}
-        task.deadline = deadline;
+        if (delay > 0 && deadline < 0) {
+            deadline = Long.MAX_VALUE;
+        }
+        task.setDeadline(deadline);
         timeouts.add(task);
         return true;
     }

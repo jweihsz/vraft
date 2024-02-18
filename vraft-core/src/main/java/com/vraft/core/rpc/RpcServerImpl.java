@@ -1,10 +1,13 @@
 package com.vraft.core.rpc;
 
+import java.util.function.Consumer;
+
 import com.vraft.core.rpc.RpcInitializer.ServerInitializer;
 import com.vraft.facade.rpc.RpcBuilder;
 import com.vraft.facade.rpc.RpcConsts;
 import com.vraft.facade.rpc.RpcServer;
 import com.vraft.facade.system.SystemCtx;
+import com.vraft.facade.timer.TimerService;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelOption;
@@ -68,6 +71,27 @@ public class RpcServerImpl extends RpcAbstract implements RpcServer {
         if (!(ch instanceof Channel)) {return false;}
         rpcMgr.removeChannel((Channel)ch);
         return true;
+    }
+
+    @Override
+    public long genRpcMsgId() {
+        return sysCtx.getUidService().genMsgId();
+    }
+
+    @Override
+    public Object removePend(long userId, long msgId) {
+        return rpcMgr.removePendMsg(userId, msgId);
+    }
+
+    @Override
+    public boolean addPend(long userId, long msgId, Object obj) {
+        return rpcMgr.addPendMsg(userId, msgId, obj);
+    }
+
+    @Override
+    public Object startTimeout(Consumer<Object> apply, Object param, long delay) {
+        TimerService timerService = sysCtx.getTimerService();
+        return timerService.addTimeout(apply, param, delay);
     }
 
     private Channel newTcpServer(RpcBuilder bd) throws Exception {
