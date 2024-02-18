@@ -12,14 +12,21 @@ import org.apache.logging.log4j.Logger;
 public class UidHolder implements UidService {
     private final static Logger logger = LogManager.getLogger(UidHolder.class);
 
-    private final IdGenerator rpcIdGenerator;
+    private final IdGenerator genRpcId;
+    private final IdGenerator genUserId;
 
     public UidHolder() {
-        this.rpcIdGenerator = new SeqUid(1L);
+        this.genRpcId = new SeqUid(1L);
+        this.genUserId = new SeqUid(1L);
     }
 
     @Override
-    public IdGenerator getRpcIdGenerator() {
-        return rpcIdGenerator;
+    public long genUserId() {
+        return genUserId.nextId();
+    }
+
+    @Override
+    public long genMsgId() {
+        return genRpcId.nextId();
     }
 }

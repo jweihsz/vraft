@@ -1,15 +1,12 @@
 package com.vraft.core.rpc;
 
 import java.net.InetSocketAddress;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 import com.vraft.core.rpc.RpcInitializer.ClientInitializer;
 import com.vraft.facade.rpc.RpcBuilder;
 import com.vraft.facade.rpc.RpcClient;
 import com.vraft.facade.rpc.RpcConsts;
 import com.vraft.facade.system.SystemCtx;
-import com.vraft.facade.uid.UidService;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -24,25 +21,24 @@ import org.apache.logging.log4j.Logger;
 public class RpcClientImpl extends RpcAbstract implements RpcClient {
     private final static Logger logger = LogManager.getLogger(RpcClientImpl.class);
 
-    private Bootstrap bootstrap;
+    private Bootstrap bs;
     private EventLoopGroup group;
     private final RpcBuilder bd;
     private final SystemCtx sysCtx;
-
-    private final Map<String, Channel> pools;
+    private final RpcManager rpcMgr;
 
     public RpcClientImpl(SystemCtx sysCtx, RpcBuilder bd) {
         this.bd = bd;
         this.sysCtx = sysCtx;
-        this.pools = new ConcurrentHashMap<>();
+        this.rpcMgr = new RpcManager(sysCtx);
     }
 
     @Override
     public void startup() throws Exception {
         if (bd.getWire() == RpcConsts.TCP) {
-            this.bootstrap = newTcpClient(bd);
+            this.bs = newTcpClient(bd);
         } else if (bd.getWire() == RpcConsts.UDP) {
-            this.bootstrap = null;
+            this.bs = null;
         }
     }
 
@@ -54,22 +50,27 @@ public class RpcClientImpl extends RpcAbstract implements RpcClient {
     }
 
     @Override
-    public long msgId() {
-        final UidService uidService = sysCtx.getUidService();
-        return uidService.getRpcIdGenerator().nextId();
+    public boolean registerUserId(Object ch) {
+        if (ch == null) {return false;}
+        if (!(ch instanceof Channel)) {return false;}
+        long uid = sysCtx.getUidService().genUserId();
+        rpcMgr.addChannel(uid, (Channel)ch);
+        return true;
     }
 
-    private void doConnect(Bootstrap bs, String host) {
+    @Override
+    public boolean unregisterUserId(Object ch) {
+        if (ch == null) {return false;}
+        if (!(ch instanceof Channel)) {return false;}
+        rpcMgr.removeChannel((Channel)ch);
+        return true;
+    }
+
+    @Override
+    public Object doConnect(String host) throws Exception {
         InetSocketAddress a = RpcCommon.parser(host);
         final ChannelFuture future = bs.connect(a);
-        future.addListener((fc) -> {
-            if (!fc.isSuccess()) {
-                logger.error("connect {} fail!", host);
-            } else {
-                pools.put(host, future.channel());
-                logger.info("connect {} success!", host);
-            }
-        });
+        return future.awaitUninterruptibly(3000) ? future.channel() : null;
     }
 
     private Bootstrap newTcpClient(RpcBuilder bd) throws Exception {
@@ -77,7 +78,7 @@ public class RpcClientImpl extends RpcAbstract implements RpcClient {
         group = RpcCommon.eventLoop(bd.getBossNum());
         b.group(group);
         b.channel(RpcCommon.serverCls());
-        b.handler(new ClientInitializer(this));
+        b.handler(new ClientInitializer(sysCtx, this));
         return b;
     }
 

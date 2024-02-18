@@ -5,6 +5,9 @@ package com.vraft.facade.uid;
  * @version 2024/2/7 15:45
  **/
 public interface UidService {
-    
-    default IdGenerator getRpcIdGenerator() {return null;}
+
+    long genUserId();
+
+    long genMsgId();
+
 }

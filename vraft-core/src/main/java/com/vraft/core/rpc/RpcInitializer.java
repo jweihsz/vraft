@@ -2,6 +2,9 @@ package com.vraft.core.rpc;
 
 import com.vraft.core.rpc.RpcCodec.Decoder;
 import com.vraft.core.rpc.RpcCodec.Encoder;
+import com.vraft.facade.rpc.RpcClient;
+import com.vraft.facade.rpc.RpcServer;
+import com.vraft.facade.system.SystemCtx;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandler.Sharable;
@@ -20,12 +23,14 @@ public class RpcInitializer {
     private final static Logger logger = LogManager.getLogger(RpcInitializer.class);
 
     public static class ClientInitializer extends ChannelInitializer<SocketChannel> {
-        private final RpcClientImpl rpcClientImpl;
+        private final SystemCtx sysCtx;
+        private final RpcClient client;
         private final RpcClientHandler handler;
 
-        public ClientInitializer(RpcClientImpl rpcClientImpl) {
-            this.rpcClientImpl = rpcClientImpl;
-            this.handler = new RpcClientHandler(rpcClientImpl);
+        public ClientInitializer(SystemCtx sysCtx, RpcClient client) {
+            this.sysCtx = sysCtx;
+            this.client = client;
+            this.handler = new RpcClientHandler(sysCtx, client);
         }
 
         @Override
@@ -39,12 +44,14 @@ public class RpcInitializer {
     }
 
     public static class ServerInitializer extends ChannelInitializer<SocketChannel> {
-        private final RpcServerImpl rpcServerImpl;
+        private final SystemCtx sysCtx;
+        private final RpcServer rpcServer;
         private final RpcServerHandler handler;
 
-        public ServerInitializer(RpcServerImpl rpcServerImpl) {
-            this.rpcServerImpl = rpcServerImpl;
-            this.handler = new RpcServerHandler(rpcServerImpl);
+        public ServerInitializer(SystemCtx sysCtx, RpcServer rpcServer) {
+            this.sysCtx = sysCtx;
+            this.rpcServer = rpcServer;
+            this.handler = new RpcServerHandler(sysCtx, rpcServer);
         }
 
         @Override
@@ -59,20 +66,24 @@ public class RpcInitializer {
 
     @Sharable
     public static class RpcServerHandler extends ChannelDuplexHandler {
-        private final RpcServerImpl rpcServerImpl;
+        private final SystemCtx sysCtx;
+        private final RpcServer rpcServer;
 
-        public RpcServerHandler(RpcServerImpl rpcServerImpl) {
-            this.rpcServerImpl = rpcServerImpl;
+        public RpcServerHandler(SystemCtx sysCtx, RpcServer rpcServer) {
+            this.sysCtx = sysCtx;
+            this.rpcServer = rpcServer;
         }
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
-
+            logger.info("channel active:{}", RpcCommon.remoteAddress(ctx.channel()));
+            rpcServer.registerUserId(ctx.channel());
         }
 
         @Override
         public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-
+            logger.info("channel inactive:{}", RpcCommon.remoteAddress(ctx.channel()));
+            rpcServer.unregisterUserId(ctx.channel());
         }
 
         @Override
@@ -97,21 +108,25 @@ public class RpcInitializer {
 
     @Sharable
     public static class RpcClientHandler extends ChannelDuplexHandler {
+        private final SystemCtx sysCtx;
+        private final RpcClient client;
 
-        private final RpcClientImpl rpcClientImpl;
+        public RpcClientHandler(SystemCtx sysCtx, RpcClient client) {
+            this.sysCtx = sysCtx;
+            this.client = client;
 
-        public RpcClientHandler(RpcClientImpl rpcClientImpl) {
-            this.rpcClientImpl = rpcClientImpl;
         }
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
-
+            logger.info("channel active:{}", RpcCommon.remoteAddress(ctx.channel()));
+            client.registerUserId(ctx.channel());
         }
 
         @Override
         public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-
+            logger.info("channel inactive:{}", RpcCommon.remoteAddress(ctx.channel()));
+            client.unregisterUserId(ctx.channel());
         }
 
         @Override

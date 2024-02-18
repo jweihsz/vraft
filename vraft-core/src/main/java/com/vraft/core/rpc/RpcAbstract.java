@@ -3,12 +3,10 @@ package com.vraft.core.rpc;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.vraft.facade.rpc.RpcCallback;
 import com.vraft.facade.rpc.RpcConsts;
 import com.vraft.facade.rpc.RpcProcessor;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.channel.Channel;
 
 /**
  * @author jweihsz
@@ -35,21 +33,6 @@ public abstract class RpcAbstract {
         final ByteBuf bf = RpcCommon.convert(uid);
         PROCESSOR.put(bf, processor);
     }
-
-    public void invokeOneway(Object channel, ByteBuf bf) throws Exception {
-        if (!(channel instanceof Channel)) {return;}
-        final Channel ch = (Channel)channel;
-        ch.writeAndFlush(bf);
-    }
-
-    public void invokeTwoWay(Object channel, ByteBuf bf, long timeout,
-        RpcCallback cb) throws Exception {
-        if (!(channel instanceof Channel)) {return;}
-        final Channel ch = (Channel)channel;
-        ch.writeAndFlush(bf);
-    }
-
-    public abstract long msgId();
 
     private byte buildType(int rq, int type) {
         return (byte)((type & 0xFC) | (rq & 0x03));

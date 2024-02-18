@@ -21,7 +21,6 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.timeout.IdleStateHandler;
-import io.netty.util.AttributeKey;
 import io.netty.util.CharsetUtil;
 import io.netty.util.internal.ThreadLocalRandom;
 
@@ -32,13 +31,13 @@ import io.netty.util.internal.ThreadLocalRandom;
 public class RpcCommon {
     private RpcCommon() {}
 
-    public static final byte[] EMPTY_BUFFER;
-    public static final AttributeKey<String> CHANNEL_KEY;
+    /* version(byte)|type(byte)|seq(long)|uid-size(int)|
+     * header-size(int)|body-size(int)|uid-content(bytes)|
+     * header-content(bytes)|body-content(bytes)
+     */
+    public static int RPC_MATE_SIZE = 1 + 1 + 8 + 4 + 4 + 4;
 
-    static {
-        EMPTY_BUFFER = new byte[0];
-        CHANNEL_KEY = AttributeKey.valueOf("channel_key");
-    }
+    public static final byte[] EMPTY_BUFFER = new byte[0];
 
     public static Class<? extends SocketChannel> clientCls() {
         if (Epoll.isAvailable()) {
@@ -105,14 +104,6 @@ public class RpcCommon {
         return Unpooled.copiedBuffer(str, CharsetUtil.UTF_8);
     }
 
-
-    /* version(byte)|type(byte)|seq(long)|uid-size(int)|
-     * header-size(int)|body-size(int)|uid-content(bytes)|
-     * header-content(bytes)|body-content(bytes)
-     */
-
-    public static int RPC_MATE_SIZE = 1 + 1 + 8 + 4 + 4 + 4;
-
     public static boolean checkRpcMate(ByteBuf bf) {
         int total = bf.readableBytes();
         return total >= RPC_MATE_SIZE;
@@ -176,7 +167,6 @@ public class RpcCommon {
         final int index = getRpcBodyIndex(bf);
         return bf.slice(index, size);
     }
-
 }
 
 
