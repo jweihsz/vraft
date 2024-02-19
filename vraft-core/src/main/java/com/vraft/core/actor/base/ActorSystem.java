@@ -35,14 +35,14 @@ public class ActorSystem {
         schedule(actor, true);
     }
 
-    public void suspend(String actorPath) {
-        Actor actor = actors.get(actorPath);
+    public void suspend(long actorId) {
+        Actor actor = actors.get(actorId);
         if (actor == null) {return;}
         actor.suspend();
     }
 
-    public void resume(String actorPath) {
-        Actor actor = actors.get(actorPath);
+    public void resume(long actorId) {
+        Actor actor = actors.get(actorId);
         if (actor == null) {return;}
         actor.resume();
         schedule(actor, false);
