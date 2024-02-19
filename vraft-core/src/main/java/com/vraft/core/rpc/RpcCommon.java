@@ -42,10 +42,12 @@ public class RpcCommon {
     public static final byte[] EMPTY_BUFFER = new byte[0];
 
     public static final AttributeKey<Long> CH_KEY;
+    public static final AttributeKey<Long> CH_ACTOR;
     public static final AttributeKey<Map<Long, Object>> CH_PEND;
 
     static {
         CH_KEY = AttributeKey.valueOf("ch_key");
+        CH_ACTOR = AttributeKey.valueOf("ch_actor");
         CH_PEND = AttributeKey.valueOf("ch_resp_pend");
     }
 
@@ -113,6 +115,11 @@ public class RpcCommon {
     public static long getUserId(Channel ch) {
         if (ch == null) {return -1L;}
         return ch.attr(RpcCommon.CH_KEY).get();
+    }
+
+    public static long getUserActor(Channel ch) {
+        if (ch == null) {return -1L;}
+        return ch.attr(RpcCommon.CH_ACTOR).get();
     }
 
     public static ByteBuf convert(String str) {

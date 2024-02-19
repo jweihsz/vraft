@@ -36,11 +36,13 @@ public class RpcManager {
         connects.remove(userId);
     }
 
-    public void addChannel(long userId, Channel ch) {
+    public void addChannel(long userId,
+        long actorId, Channel ch) {
         Channel old = connects.put(userId, ch);
-        ch.attr(RpcCommon.CH_KEY).set(userId);
-        ch.attr(RpcCommon.CH_PEND).set(new ConcurrentHashMap<>());
         if (old != null) {old.close();}
+        ch.attr(RpcCommon.CH_KEY).set(userId);
+        ch.attr(RpcCommon.CH_ACTOR).set(actorId);
+        ch.attr(RpcCommon.CH_PEND).set(new ConcurrentHashMap<>());
     }
 
     public Object removePendMsg(Channel ch, long msgId) {

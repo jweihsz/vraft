@@ -1,5 +1,6 @@
 package com.vraft.facade.system;
 
+import com.vraft.facade.actor.ActorService;
 import com.vraft.facade.rpc.RpcService;
 import com.vraft.facade.timer.TimerService;
 import com.vraft.facade.uid.UidService;
@@ -14,4 +15,5 @@ public class SystemCtx {
     private UidService uidService;
     private RpcService raftRpcService;
     private TimerService timerService;
+    private ActorService actorService;
 }

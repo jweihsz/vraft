@@ -13,12 +13,13 @@ public class RpcCmd {
     private byte req;
     private byte ty;
     private Object ext;
-    private long msgId;
     private String uid;
+    private long msgId;
     private long userId;
     private byte[] body;
     private byte[] header;
     private long timeout;
+    private Throwable ex;
     private CallBack callBack;
     private transient Handle<RpcCmd> handle;
 
@@ -35,9 +36,10 @@ public class RpcCmd {
         this.userId = -1;
         this.uid = null;
         this.ext = null;
-        this.callBack = null;
-        this.header = null;
+        this.ex = null;
         this.body = null;
+        this.header = null;
+        this.callBack = null;
         this.timeout = -1L;
         this.handle.recycle(this);
     }

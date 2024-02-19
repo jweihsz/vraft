@@ -1,13 +1,12 @@
 package com.vraft.core.rpc;
 
-import java.util.function.Consumer;
-
 import com.vraft.core.rpc.RpcInitializer.ServerInitializer;
 import com.vraft.facade.rpc.RpcBuilder;
 import com.vraft.facade.rpc.RpcConsts;
+import com.vraft.facade.rpc.RpcProcessor;
 import com.vraft.facade.rpc.RpcServer;
 import com.vraft.facade.system.SystemCtx;
-import com.vraft.facade.timer.TimerService;
+import com.vraft.facade.uid.UidService;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelOption;
@@ -19,19 +18,21 @@ import org.apache.logging.log4j.Logger;
  * @author jweihsz
  * @version 2024/2/8 22:37
  **/
-public class RpcServerImpl extends RpcAbstract implements RpcServer {
+public class RpcServerImpl implements RpcServer {
     private final static Logger logger = LogManager.getLogger(RpcServerImpl.class);
 
     private Channel channel;
     private final RpcBuilder bd;
     private final SystemCtx sysCtx;
     private final RpcManager rpcMgr;
+    private final RpcHelper rpcHelper;
     private EventLoopGroup boss, worker;
 
     public RpcServerImpl(SystemCtx sysCtx, RpcBuilder bd) {
         this.bd = bd;
         this.sysCtx = sysCtx;
         this.rpcMgr = new RpcManager(sysCtx);
+        this.rpcHelper = new RpcHelper(sysCtx, rpcMgr);
     }
 
     @Override
@@ -60,8 +61,10 @@ public class RpcServerImpl extends RpcAbstract implements RpcServer {
     public boolean registerUserId(Object ch) {
         if (ch == null) {return false;}
         if (!(ch instanceof Channel)) {return false;}
-        long uid = sysCtx.getUidService().genUserId();
-        rpcMgr.addChannel(uid, (Channel)ch);
+        UidService uid = sysCtx.getUidService();
+        long userId = uid.genUserId();
+        long actorId = uid.genActorId();
+        rpcMgr.addChannel(userId, actorId, (Channel)ch);
         return true;
     }
 
@@ -74,24 +77,18 @@ public class RpcServerImpl extends RpcAbstract implements RpcServer {
     }
 
     @Override
-    public long genRpcMsgId() {
-        return sysCtx.getUidService().genMsgId();
+    public void unregisterProcessor(String uid) {
+        rpcHelper.unregisterProcessor(uid);
     }
 
     @Override
-    public Object removePend(long userId, long msgId) {
-        return rpcMgr.removePendMsg(userId, msgId);
+    public RpcProcessor<?> getProcessor(Object uid) {
+        return rpcHelper.getProcessor(uid);
     }
 
     @Override
-    public boolean addPend(long userId, long msgId, Object obj) {
-        return rpcMgr.addPendMsg(userId, msgId, obj);
-    }
-
-    @Override
-    public Object startTimeout(Consumer<Object> apply, Object param, long delay) {
-        TimerService timerService = sysCtx.getTimerService();
-        return timerService.addTimeout(apply, param, delay);
+    public void registerProcessor(String uid, RpcProcessor<?> processor) {
+        rpcHelper.registerProcessor(uid, processor);
     }
 
     private Channel newTcpServer(RpcBuilder bd) throws Exception {

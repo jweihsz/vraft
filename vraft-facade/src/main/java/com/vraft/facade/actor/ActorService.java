@@ -7,4 +7,7 @@ import com.vraft.facade.common.LifeCycle;
  * @version 2024/2/18 20:15
  **/
 public interface ActorService extends LifeCycle {
+
+    <E> boolean dispatch(long actorId, ActorType type, E msg);
+
 }

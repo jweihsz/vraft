@@ -1,14 +1,14 @@
 package com.vraft.core.rpc;
 
 import java.net.InetSocketAddress;
-import java.util.function.Consumer;
 
 import com.vraft.core.rpc.RpcInitializer.ClientInitializer;
 import com.vraft.facade.rpc.RpcBuilder;
 import com.vraft.facade.rpc.RpcClient;
 import com.vraft.facade.rpc.RpcConsts;
+import com.vraft.facade.rpc.RpcProcessor;
 import com.vraft.facade.system.SystemCtx;
-import com.vraft.facade.timer.TimerService;
+import com.vraft.facade.uid.UidService;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -20,7 +20,7 @@ import org.apache.logging.log4j.Logger;
  * @author jweihsz
  * @version 2024/2/8 22:37
  **/
-public class RpcClientImpl extends RpcAbstract implements RpcClient {
+public class RpcClientImpl implements RpcClient {
     private final static Logger logger = LogManager.getLogger(RpcClientImpl.class);
 
     private Bootstrap bs;
@@ -28,11 +28,13 @@ public class RpcClientImpl extends RpcAbstract implements RpcClient {
     private final RpcBuilder bd;
     private final SystemCtx sysCtx;
     private final RpcManager rpcMgr;
+    private final RpcHelper rpcHelper;
 
     public RpcClientImpl(SystemCtx sysCtx, RpcBuilder bd) {
         this.bd = bd;
         this.sysCtx = sysCtx;
         this.rpcMgr = new RpcManager(sysCtx);
+        this.rpcHelper = new RpcHelper(sysCtx, rpcMgr);
     }
 
     @Override
@@ -55,8 +57,10 @@ public class RpcClientImpl extends RpcAbstract implements RpcClient {
     public boolean registerUserId(Object ch) {
         if (ch == null) {return false;}
         if (!(ch instanceof Channel)) {return false;}
-        long uid = sysCtx.getUidService().genUserId();
-        rpcMgr.addChannel(uid, (Channel)ch);
+        UidService uid = sysCtx.getUidService();
+        long userId = uid.genUserId();
+        long actorId = uid.genActorId();
+        rpcMgr.addChannel(userId, actorId, (Channel)ch);
         return true;
     }
 
@@ -69,31 +73,25 @@ public class RpcClientImpl extends RpcAbstract implements RpcClient {
     }
 
     @Override
+    public void unregisterProcessor(String uid) {
+        rpcHelper.unregisterProcessor(uid);
+    }
+
+    @Override
+    public RpcProcessor<?> getProcessor(Object uid) {
+        return rpcHelper.getProcessor(uid);
+    }
+
+    @Override
+    public void registerProcessor(String uid, RpcProcessor<?> processor) {
+        rpcHelper.registerProcessor(uid, processor);
+    }
+
+    @Override
     public Object doConnect(String host) throws Exception {
         InetSocketAddress a = RpcCommon.parser(host);
         final ChannelFuture future = bs.connect(a);
         return future.awaitUninterruptibly(3000) ? future.channel() : null;
-    }
-
-    @Override
-    public long genRpcMsgId() {
-        return sysCtx.getUidService().genMsgId();
-    }
-
-    @Override
-    public Object removePend(long userId, long msgId) {
-        return rpcMgr.removePendMsg(userId, msgId);
-    }
-
-    @Override
-    public boolean addPend(long userId, long msgId, Object obj) {
-        return rpcMgr.addPendMsg(userId, msgId, obj);
-    }
-
-    @Override
-    public Object startTimeout(Consumer<Object> apply, Object param, long delay) {
-        TimerService timerService = sysCtx.getTimerService();
-        return timerService.addTimeout(apply, param, delay);
     }
 
     private Bootstrap newTcpClient(RpcBuilder bd) throws Exception {
