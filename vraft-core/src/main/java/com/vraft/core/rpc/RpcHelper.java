@@ -5,9 +5,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
+import com.vraft.core.actor.ActorSystem;
 import com.vraft.core.pool.ObjectsPool;
-import com.vraft.facade.actor.ActorService;
-import com.vraft.facade.actor.ActorType;
 import com.vraft.facade.common.CallBack;
 import com.vraft.facade.rpc.RpcConsts;
 import com.vraft.facade.rpc.RpcProcessor;
@@ -26,6 +25,8 @@ public class RpcHelper {
 
     private final SystemCtx sysCtx;
     private final RpcManager rpcMgr;
+    private final RpcActor rpcActor;
+    private final ActorSystem actorSys;
     private final Consumer<Object> apply;
     private final Map<ByteBuf, RpcProcessor<?>> PROCESSOR;
 
@@ -33,7 +34,9 @@ public class RpcHelper {
         this.sysCtx = sysCtx;
         this.rpcMgr = rpcMgr;
         this.apply = buildConsumer(rpcMgr);
+        this.rpcActor = new RpcActor(sysCtx);
         this.PROCESSOR = new ConcurrentHashMap<>();
+        this.actorSys = ActorSystem.INSTANCE;
     }
 
     public void unregisterProcessor(String uid) {
@@ -112,14 +115,6 @@ public class RpcHelper {
             return buildTwoWayPkg(cmd);
         }
         return null;
-    }
-
-    private ActorType getActorType(byte rq) {
-        if (RpcConsts.isResp(rq)) {
-            return ActorType.RPC_RESPONSE;
-        } else {
-            return ActorType.RPC_REQUEST;
-        }
     }
 
     private byte buildType(byte rq, byte type) {
@@ -244,9 +239,7 @@ public class RpcHelper {
     }
 
     private boolean dispatchRpcCmd(long actorId, RpcCmd msg) {
-        ActorService actorService = sysCtx.getActorService();
-        final ActorType type = getActorType(msg.getReq());
-        return actorService.dispatch(actorId, type, msg);
+        return actorSys.dispatch(actorId, msg, rpcActor);
     }
 
 }

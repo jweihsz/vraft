@@ -1,4 +1,4 @@
-package com.vraft.core.actor.base;
+package com.vraft.core.actor;
 
 import java.lang.reflect.Field;
 import java.util.Queue;
@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.vraft.core.pool.ThreadPool;
 import io.netty.util.internal.PlatformDependent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,21 +19,23 @@ import org.slf4j.LoggerFactory;
  **/
 public class ActorSystem {
     private static final Logger logger = LoggerFactory.getLogger(ActorSystem.class);
-
     private final ThreadPoolExecutor executor;
     private final AtomicInteger actorsCount;
     private final ConcurrentMap<Long, Actor> actors;
+    public static final ActorSystem INSTANCE = new ActorSystem(ThreadPool.ACTOR);
 
-    public ActorSystem(ThreadPoolExecutor executor) {
+    private ActorSystem(ThreadPoolExecutor executor) {
         this.executor = executor;
         this.actorsCount = new AtomicInteger();
         this.actors = new ConcurrentHashMap<>();
     }
 
-    public <E> void dispatch(long actorId, E msg, Processor<E> processor) {
+    public <E> boolean dispatch(long actorId, E msg,
+        ActorProcessor<E> processor) {
         Actor<E> actor = createOrGet(actorId, processor);
-        actor.dispatch(msg);
+        boolean status = actor.dispatch(msg);
         schedule(actor, true);
+        return status;
     }
 
     public void suspend(long actorId) {
@@ -48,62 +51,60 @@ public class ActorSystem {
         schedule(actor, false);
     }
 
-    public <E> Actor<E> createOrGet(long actorId, Processor<E> processor) {
+    public <E> Actor<E> createOrGet(long actorId,
+        ActorProcessor<E> processor) {
         Actor<E> actor = actors.get(actorId);
         if (actor != null) {return actor;}
         Actor<E> add = new Actor<>(actorId, this, processor);
         Actor<E> old = actors.putIfAbsent(actorId, add);
-        if (old == null) {
-            actorsCount.incrementAndGet();
-            return add;
-        } else {
-            return old;
-        }
+        if (old != null) {return old;}
+        actorsCount.incrementAndGet();
+        return add;
     }
 
     private <E> boolean schedule(Actor<E> actor, boolean hasMessageHint) {
-        if (!actor.canBeSchedule(hasMessageHint)) { return false; }
-        if (actor.setAsScheduled()) {
-            actor.submitTs = System.currentTimeMillis();
-            this.executor.execute(actor);
-            return true;
-        }
-        return false;
+        if (!actor.canBeSchedule(hasMessageHint)) {return false;}
+        if (!actor.setAsScheduled()) {return false;}
+        actor.submitTs = System.currentTimeMillis();
+        this.executor.execute(actor);
+        return true;
     }
 
-    public interface Processor<T> {
+    public interface ActorProcessor<T> {
         boolean process(long deadline, Actor<T> self);
     }
 
     public static class Actor<E> implements Runnable, Comparable<Actor> {
+        private static final int QUOTA = 5;
+        private static final int suspendUnit = 4;
         private static final int Open = 0;
         private static final int Scheduled = 2;
         private static final int shouldScheduleMask = 3;
         private static final int shouldNotProcessMask = ~2;
-        private static final int suspendUnit = 4;
-        private static final int QUOTA = 5;
         private static long statusOffset;
 
         static {
             try {
-                statusOffset = Unsafe.instance.objectFieldOffset(Actor.class.getDeclaredField("status"));
+                statusOffset = Unsafe.instance.objectFieldOffset(
+                    Actor.class.getDeclaredField("status"));
             } catch (Throwable t) {
                 throw new ExceptionInInitializerError(t);
             }
         }
 
-        final ActorSystem actorSystem;
         final Queue<E> queue;
-        final Processor<E> processor;
+        private volatile int status;
         private long total, actorId;
         private volatile long submitTs;
         private volatile long executeTs;
-        private volatile int status;
+        final ActorSystem actorSystem;
+        final ActorProcessor<E> processor;
 
-        Actor(long actorId, ActorSystem actorSystem, Processor<E> processor) {
+        public Actor(long actorId, ActorSystem actorSystem,
+            ActorProcessor<E> processor) {
+            this.actorId = actorId;
             this.actorSystem = actorSystem;
             this.processor = processor;
-            this.actorId = actorId;
             this.queue = PlatformDependent.newMpscQueue();
         }
 
@@ -183,7 +184,6 @@ public class ActorSystem {
     }
 
     private enum ActorCompareWay {
-
         LastExecuteTimestamp {
             @Override
             public int compare(Actor a1, Actor a2) {
@@ -215,7 +215,10 @@ public class ActorSystem {
                         break;
                     }
                 }
-                if (found == null) { throw new IllegalStateException("Can't find instance of sun.misc.Unsafe"); } else {
+                if (found == null) {
+                    throw new IllegalStateException(
+                        "Can't find instance of sun.misc.Unsafe");
+                } else {
                     instance = found;
                 }
             } catch (Throwable t) {
