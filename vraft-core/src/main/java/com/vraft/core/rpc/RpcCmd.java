@@ -11,7 +11,6 @@ import lombok.Data;
 @Data
 public class RpcCmd {
     private byte req;
-    private byte ty;
     private Object ext;
     private String uid;
     private long msgId;
@@ -30,7 +29,6 @@ public class RpcCmd {
     }
 
     public void recycle() {
-        this.ty = -1;
         this.req = -1;
         this.msgId = -1;
         this.userId = -1;

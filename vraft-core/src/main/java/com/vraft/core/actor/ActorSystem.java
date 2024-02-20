@@ -71,7 +71,7 @@ public class ActorSystem {
     }
 
     public interface ActorProcessor<T> {
-        boolean process(long deadline, Actor<T> self);
+        void process(long deadline, Actor<T> self);
     }
 
     public static class Actor<E> implements Runnable, Comparable<Actor> {
@@ -82,6 +82,13 @@ public class ActorSystem {
         private static final int shouldScheduleMask = 3;
         private static final int shouldNotProcessMask = ~2;
         private static long statusOffset;
+        private final Queue<E> queue;
+        private volatile int status;
+        private long total, actorId;
+        private volatile long submitTs;
+        private volatile long executeTs;
+        final ActorSystem actorSystem;
+        final ActorProcessor<E> processor;
 
         static {
             try {
@@ -91,14 +98,6 @@ public class ActorSystem {
                 throw new ExceptionInInitializerError(t);
             }
         }
-
-        final Queue<E> queue;
-        private volatile int status;
-        private long total, actorId;
-        private volatile long submitTs;
-        private volatile long executeTs;
-        final ActorSystem actorSystem;
-        final ActorProcessor<E> processor;
 
         public Actor(long actorId, ActorSystem actorSystem,
             ActorProcessor<E> processor) {
@@ -153,6 +152,8 @@ public class ActorSystem {
                 if (updateStatus(s, s + suspendUnit)) { return; }
             }
         }
+
+        public Queue<E> getQueue() {return queue;}
 
         final boolean setAsScheduled() {
             while (true) {

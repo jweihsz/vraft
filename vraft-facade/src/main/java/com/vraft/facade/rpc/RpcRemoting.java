@@ -5,10 +5,10 @@ package com.vraft.facade.rpc;
  * @version 2024/2/15 15:21
  **/
 public interface RpcRemoting {
-    
-    void unregisterProcessor(String uid);
+
+    void removeProcessor(String uid);
 
     RpcProcessor<?> getProcessor(Object uid);
 
-    void registerProcessor(String uid, RpcProcessor<?> processor);
+    void addProcessor(String uid, RpcProcessor<?> rp);
 }

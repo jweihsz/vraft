@@ -77,18 +77,18 @@ public class RpcServerImpl implements RpcServer {
     }
 
     @Override
-    public void unregisterProcessor(String uid) {
-        rpcHelper.unregisterProcessor(uid);
+    public void removeProcessor(String uid) {
+        rpcMgr.removeProcessor(uid);
     }
 
     @Override
     public RpcProcessor<?> getProcessor(Object uid) {
-        return rpcHelper.getProcessor(uid);
+        return rpcMgr.getProcessor(uid);
     }
 
     @Override
-    public void registerProcessor(String uid, RpcProcessor<?> processor) {
-        rpcHelper.registerProcessor(uid, processor);
+    public void addProcessor(String uid, RpcProcessor<?> rp) {
+        rpcMgr.addProcessor(uid, rp);
     }
 
     private Channel newTcpServer(RpcBuilder bd) throws Exception {
