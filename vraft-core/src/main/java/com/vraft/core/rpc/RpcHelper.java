@@ -42,39 +42,16 @@ public class RpcHelper {
     }
 
     public RpcProcessor<?> getProcessor(Object uid) {
-        if (uid instanceof ByteBuf) {
-            return PROCESSOR.get((ByteBuf)uid);
-        } else {
-            return null;
-        }
+        if (!(uid instanceof ByteBuf)) {return null;}
+        return PROCESSOR.get((ByteBuf)uid);
     }
 
-    public void registerProcessor(String uid, RpcProcessor<?> processor) {
-        if (uid == null || uid.isEmpty() || processor == null) {return;}
+    public void registerProcessor(String uid,
+        RpcProcessor<?> processor) {
+        if (uid == null || uid.isEmpty()
+            || processor == null) {return;}
         final ByteBuf bf = RpcCommon.convert(uid);
         PROCESSOR.put(bf, processor);
-    }
-
-    public long genRpcMsgId() {
-        return sysCtx.getUidService().genMsgId();
-    }
-
-    public Object removePend(long userId, long msgId) {
-        return rpcMgr.removePendMsg(userId, msgId);
-    }
-
-    public boolean addPend(long userId, long msgId, Object obj) {
-        return rpcMgr.addPendMsg(userId, msgId, obj);
-    }
-
-    public Object startTimeout(Object param, long delay) {
-        TimerService timerService = sysCtx.getTimerService();
-        return timerService.addTimeout(apply, param, delay);
-    }
-
-    public boolean dispatchRpcCmd(long actorId, ActorType type, RpcCmd msg) {
-        ActorService actorService = sysCtx.getActorService();
-        return actorService.dispatch(actorId, type, msg);
     }
 
     public boolean dispatchRpc(Object channel, byte rq, byte ty,
@@ -83,17 +60,14 @@ public class RpcHelper {
         if (!(channel instanceof Channel)) {return false;}
         final Channel ch = (Channel)channel;
         if (!ch.isWritable()) {return false;}
-        long userId = RpcCommon.getUserId(ch);
-        if (userId <= 0) {return false;}
-        long actorId = RpcCommon.getUserActor(ch);
-        if (actorId <= 0) {return false;}
+        final long userId = RpcCommon.getUserId(ch);
+        final long actorId = RpcCommon.getUserActor(ch);
+        if (userId <= 0 || actorId <= 0) {return false;}
         final RpcCmd cmd = buildBaseCmd(userId, rq, ty,
-            0, uid, body, header, cb, timeout);
-        if (!dispatchRpcCmd(actorId, getActorType(rq), cmd)) {
-            cmd.recycle();
-            return false;
-        }
-        return true;
+            genRpcMsgId(), uid, body, header, cb, timeout);
+        if (dispatchRpcCmd(actorId, cmd)) {return true;}
+        cmd.recycle();
+        return false;
     }
 
     public boolean invokeBatch(Object channel, List<RpcCmd> nodes) {
@@ -119,21 +93,11 @@ public class RpcHelper {
         }
     }
 
-    public boolean invokeOneway(Object channel, RpcCmd cmd) {
+    public boolean invokeOne(Object channel, RpcCmd cmd) {
         if (!(channel instanceof Channel)) {return false;}
         final Channel ch = (Channel)channel;
         if (!ch.isWritable()) {return false;}
-        ch.writeAndFlush(buildOneWayPkg(cmd));
-        return true;
-    }
-
-    public boolean invokeTwoWay(Object channel, RpcCmd cmd) {
-        if (!(channel instanceof Channel)) {return false;}
-        final Channel ch = (Channel)channel;
-        if (!ch.isWritable()) {return false;}
-        long userId = RpcCommon.getUserId(ch);
-        if (userId <= 0) {return false;}
-        ByteBuf bf = buildTwoWayPkg(cmd);
+        final ByteBuf bf = processRpcCmd(cmd);
         if (bf == null) {return false;}
         ch.writeAndFlush(bf);
         return true;
@@ -162,7 +126,7 @@ public class RpcHelper {
         return (byte)((type & 0xFC) | (rq & 0x03));
     }
 
-    public RpcCmd buildBaseCmd(long userId, byte rq, byte ty,
+    private RpcCmd buildBaseCmd(long userId, byte rq, byte ty,
         long id, String uid, byte[] body, byte[] header,
         CallBack cb, long timeout) {
         RpcCmd cmd = ObjectsPool.RPC_CMD_RECYCLER.get();
@@ -254,15 +218,35 @@ public class RpcHelper {
             cmd.setEx(timeout);
             Channel ch = rpcMgr.getChannel(cmd.getUserId());
             long actorId = RpcCommon.getUserActor(ch);
-            if (ch == null || actorId <= 0) {
-                cmd.recycle();
-                return;
-            }
-            ActorType type = ActorType.RPC_RESPONSE;
-            if (!dispatchRpcCmd(actorId, type, cmd)) {
+            if (ch == null || actorId <= 0
+                || !dispatchRpcCmd(actorId, cmd)) {
                 cmd.recycle();
             }
         };
+    }
+
+    private long genRpcMsgId() {
+        return sysCtx.getUidService().genMsgId();
+    }
+
+    private Object removePend(long userId, long msgId) {
+        return rpcMgr.removePendMsg(userId, msgId);
+    }
+
+    private boolean addPend(long userId,
+        long msgId, Object obj) {
+        return rpcMgr.addPendMsg(userId, msgId, obj);
+    }
+
+    private Object startTimeout(Object param, long delay) {
+        TimerService timerService = sysCtx.getTimerService();
+        return timerService.addTimeout(apply, param, delay);
+    }
+
+    private boolean dispatchRpcCmd(long actorId, RpcCmd msg) {
+        ActorService actorService = sysCtx.getActorService();
+        final ActorType type = getActorType(msg.getReq());
+        return actorService.dispatch(actorId, type, msg);
     }
 
 }
