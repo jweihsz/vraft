@@ -45,11 +45,11 @@ import io.netty.util.internal.ThreadLocalRandom;
 public class RpcCommon {
     private RpcCommon() {}
 
-    /* version(byte)|type(byte)|seq(long)|uid-size(int)|
+    /* version(byte)|biz(byte)|type(byte)|seq(long)|uid-size(int)|
      * header-size(int)|body-size(int)|uid-content(bytes)|
      * header-content(bytes)|body-content(bytes)
      */
-    public static int RPC_MATE_SIZE = 1 + 1 + 8 + 4 + 4 + 4;
+    public static int RPC_MATE_SIZE = 1 + 1 + 1 + 8 + 4 + 4 + 4;
 
     public static final byte[] EMPTY_BUFFER = new byte[0];
 
