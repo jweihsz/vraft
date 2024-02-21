@@ -53,22 +53,22 @@ public class RpcServerImpl implements RpcServer {
     }
 
     @Override
-    public boolean oneWay(long userId, String uid, byte[] header,
+    public boolean oneWay(long userId, byte biz, String uid, byte[] header,
         byte[] body) throws Exception {
-        return RpcCommon.dispatchOneWay(sysCtx, userId, uid, header, body);
+        return RpcCommon.dispatchOneWay(sysCtx, userId, biz, uid, header, body);
     }
 
     @Override
-    public boolean twoWay(long userId, String uid, byte[] header,
+    public boolean twoWay(long userId, byte biz, String uid, byte[] header,
         byte[] body, long timeout, CallBack cb) throws Exception {
-        return RpcCommon.dispatchTwoWay(sysCtx, userId,
+        return RpcCommon.dispatchTwoWay(sysCtx, userId, biz,
             uid, header, body, timeout, cb);
     }
 
     @Override
-    public boolean resp(SystemCtx ctx, long userId, long msgId,
+    public boolean resp(long userId, byte biz, long msgId,
         String uid, byte[] header, byte[] body) throws Exception {
-        return RpcCommon.dispatchResp(sysCtx, userId,
+        return RpcCommon.dispatchResp(sysCtx, userId, biz,
             msgId, uid, header, body);
     }
 

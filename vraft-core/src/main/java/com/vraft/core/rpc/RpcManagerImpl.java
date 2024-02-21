@@ -6,7 +6,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.vraft.facade.rpc.RpcManager;
 import com.vraft.facade.rpc.RpcProcessor;
 import com.vraft.facade.system.SystemCtx;
-import com.vraft.facade.uid.UidService;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import org.apache.logging.log4j.LogManager;
@@ -53,7 +52,6 @@ public class RpcManagerImpl implements RpcManager {
         final Channel ch = (Channel)channel;
         Channel old = connects.put(userId, ch);
         if (old != null) {old.close();}
-        UidService uid = sysCtx.getUidService();
         ch.attr(RpcCommon.CH_KEY).set(userId);
         ch.attr(RpcCommon.CH_PEND).set(new ConcurrentHashMap<>());
     }

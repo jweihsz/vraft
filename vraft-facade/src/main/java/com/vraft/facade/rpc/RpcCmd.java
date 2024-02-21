@@ -9,7 +9,8 @@ import lombok.Data;
  **/
 @Data
 public class RpcCmd {
-    private byte req;
+    private byte biz;
+    private byte type;
     private Object ext;
     private String uid;
     private long msgId;
@@ -21,7 +22,8 @@ public class RpcCmd {
     private CallBack callBack;
 
     public void rest() {
-        this.req = -1;
+        this.type = -1;
+        this.biz = -1;
         this.msgId = -1;
         this.userId = -1;
         this.uid = null;

@@ -2,7 +2,6 @@ package com.vraft.facade.rpc;
 
 import com.vraft.facade.common.CallBack;
 import com.vraft.facade.common.LifeCycle;
-import com.vraft.facade.system.SystemCtx;
 
 /**
  * @author jweihsz
@@ -12,12 +11,12 @@ public interface RpcClient extends LifeCycle {
 
     Object doConnect(String host) throws Exception;
 
-    boolean oneWay(long userId, String uid, byte[] header,
+    boolean oneWay(long userId, byte biz, String uid, byte[] header,
         byte[] body) throws Exception;
 
-    boolean twoWay(long userId, String uid, byte[] header,
+    boolean twoWay(long userId, byte biz, String uid, byte[] header,
         byte[] body, long timeout, CallBack cb) throws Exception;
 
-    boolean resp(SystemCtx ctx, long userId, long msgId, String uid,
+    boolean resp(long userId, byte biz, long msgId, String uid,
         byte[] header, byte[] body) throws Exception;
 }

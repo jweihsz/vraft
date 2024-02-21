@@ -196,10 +196,10 @@ public class RpcCommon {
     }
 
     public static boolean dispatchRpc(SystemCtx ctx, long userId,
-        byte rq, long msgId, String uid, byte[] header,
+        byte biz, byte type, long msgId, String uid, byte[] header,
         byte[] body, long timeout, CallBack cb) throws Exception {
         ActorService actor = ctx.getActorService();
-        final RpcCmd cmd = buildBaseCmd(userId, rq,
+        final RpcCmd cmd = buildBaseCmd(userId, biz, type,
             msgId, uid, body, header, cb, timeout);
         if (actor.dispatchWriteChMsg(userId, cmd)) {return true;}
         ((RpcCmdExt)cmd).recycle();
@@ -207,24 +207,24 @@ public class RpcCommon {
     }
 
     public static boolean dispatchOneWay(SystemCtx ctx, long userId,
-        String uid, byte[] header, byte[] body) throws Exception {
+        byte biz, String uid, byte[] header, byte[] body) throws Exception {
         final UidService genId = ctx.getUidService();
-        return dispatchRpc(ctx, userId, RpcConsts.RPC_ONE_WAY,
+        return dispatchRpc(ctx, userId, RpcConsts.RPC_ONE_WAY, biz,
             genId.genMsgId(), uid, header, body, -1L, null);
     }
 
     public static boolean dispatchTwoWay(SystemCtx ctx, long userId,
-        String uid, byte[] header, byte[] body, long timeout,
+        byte biz, String uid, byte[] header, byte[] body, long timeout,
         CallBack cb) throws Exception {
         final UidService genId = ctx.getUidService();
-        return dispatchRpc(ctx, userId, RpcConsts.RPC_TWO_WAY,
+        return dispatchRpc(ctx, userId, biz, RpcConsts.RPC_TWO_WAY,
             genId.genMsgId(), uid, header, body, timeout, cb);
     }
 
     public static boolean dispatchResp(SystemCtx ctx, long userId,
-        long msgId, String uid, byte[] header,
+        byte biz, long msgId, String uid, byte[] header,
         byte[] body) throws Exception {
-        return dispatchRpc(ctx, userId, RpcConsts.RPC_RESPONSE,
+        return dispatchRpc(ctx, userId, biz, RpcConsts.RPC_RESPONSE,
             msgId, uid, header, body, -1L, null);
     }
 
@@ -252,13 +252,14 @@ public class RpcCommon {
         }
     }
 
-    public static RpcCmd buildBaseCmd(long userId, byte rq,
-        long id, String uid, byte[] body, byte[] header,
+    public static RpcCmd buildBaseCmd(long userId, byte biz,
+        byte type, long id, String uid, byte[] body, byte[] header,
         CallBack cb, long timeout) {
         RpcCmd cmd = ObjectsPool.RPC_CMD_RECYCLER.get();
+        cmd.setBiz(biz);
         cmd.setCallBack(cb);
         cmd.setMsgId(id);
-        cmd.setReq(rq);
+        cmd.setType(type);
         cmd.setUserId(userId);
         cmd.setUid(uid);
         cmd.setHeader(header);
@@ -270,11 +271,11 @@ public class RpcCommon {
 
     public static ByteBuf processRpcCmd(SystemCtx ctx,
         Consumer<Object> apply, RpcCmd cmd) {
-        if (RpcConsts.isOneWay(cmd.getReq())) {
+        if (RpcConsts.isOneWay(cmd.getType())) {
             return buildOneWayPkg(cmd);
-        } else if (RpcConsts.isResp(cmd.getReq())) {
+        } else if (RpcConsts.isResp(cmd.getType())) {
             return buildOneWayPkg(cmd);
-        } else if (RpcConsts.isTwoWay(cmd.getReq())) {
+        } else if (RpcConsts.isTwoWay(cmd.getType())) {
             return buildTwoWayPkg(ctx, apply, cmd);
         }
         return null;
@@ -282,7 +283,7 @@ public class RpcCommon {
 
     public static ByteBuf buildOneWayPkg(RpcCmd cmd) {
         return buildBasePkg(
-            cmd.getReq(),
+            cmd.getType(),
             cmd.getMsgId(),
             cmd.getUid(),
             cmd.getHeader(),
@@ -291,7 +292,7 @@ public class RpcCommon {
 
     private static ByteBuf buildTwoWayPkg(SystemCtx ctx,
         Consumer<Object> apply, RpcCmd cmd) {
-        ByteBuf bf = buildBasePkg(cmd.getReq(), cmd.getMsgId(),
+        ByteBuf bf = buildBasePkg(cmd.getType(), cmd.getMsgId(),
             cmd.getUid(), cmd.getHeader(), cmd.getBody());
         final RpcManager mgr = ctx.getRpcManager();
         TimerService timer = ctx.getTimerService();
