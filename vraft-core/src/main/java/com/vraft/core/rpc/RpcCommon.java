@@ -14,6 +14,7 @@ import com.vraft.facade.rpc.RpcConsts;
 import com.vraft.facade.rpc.RpcManager;
 import com.vraft.facade.system.SystemCtx;
 import com.vraft.facade.timer.TimerService;
+import com.vraft.facade.uid.UidService;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
 import io.netty.buffer.Unpooled;
@@ -203,6 +204,28 @@ public class RpcCommon {
         if (actor.dispatchWriteChMsg(userId, cmd)) {return true;}
         ((RpcCmdExt)cmd).recycle();
         return false;
+    }
+
+    public static boolean dispatchOneWay(SystemCtx ctx, long userId,
+        String uid, byte[] header, byte[] body) throws Exception {
+        final UidService genId = ctx.getUidService();
+        return dispatchRpc(ctx, userId, RpcConsts.RPC_ONE_WAY,
+            genId.genMsgId(), uid, header, body, -1L, null);
+    }
+
+    public static boolean dispatchTwoWay(SystemCtx ctx, long userId,
+        String uid, byte[] header, byte[] body, long timeout,
+        CallBack cb) throws Exception {
+        final UidService genId = ctx.getUidService();
+        return dispatchRpc(ctx, userId, RpcConsts.RPC_TWO_WAY,
+            genId.genMsgId(), uid, header, body, timeout, cb);
+    }
+
+    public static boolean dispatchResp(SystemCtx ctx, long userId,
+        long msgId, String uid, byte[] header,
+        byte[] body) throws Exception {
+        return dispatchRpc(ctx, userId, RpcConsts.RPC_RESPONSE,
+            msgId, uid, header, body, -1L, null);
     }
 
     public static boolean invokeBatch(SystemCtx ctx, long userId,

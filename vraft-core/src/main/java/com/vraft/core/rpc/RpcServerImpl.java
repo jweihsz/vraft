@@ -1,6 +1,7 @@
 package com.vraft.core.rpc;
 
 import com.vraft.core.rpc.RpcInitializer.ServerInitializer;
+import com.vraft.facade.common.CallBack;
 import com.vraft.facade.rpc.RpcBuilder;
 import com.vraft.facade.rpc.RpcConsts;
 import com.vraft.facade.rpc.RpcServer;
@@ -49,6 +50,26 @@ public class RpcServerImpl implements RpcServer {
         if (worker != null) {
             worker.shutdownGracefully().syncUninterruptibly();
         }
+    }
+
+    @Override
+    public boolean oneWay(long userId, String uid, byte[] header,
+        byte[] body) throws Exception {
+        return RpcCommon.dispatchOneWay(sysCtx, userId, uid, header, body);
+    }
+
+    @Override
+    public boolean twoWay(long userId, String uid, byte[] header,
+        byte[] body, long timeout, CallBack cb) throws Exception {
+        return RpcCommon.dispatchTwoWay(sysCtx, userId,
+            uid, header, body, timeout, cb);
+    }
+
+    @Override
+    public boolean resp(SystemCtx ctx, long userId, long msgId,
+        String uid, byte[] header, byte[] body) throws Exception {
+        return RpcCommon.dispatchResp(sysCtx, userId,
+            msgId, uid, header, body);
     }
 
     private Channel newTcpServer(RpcBuilder bd) throws Exception {

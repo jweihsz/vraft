@@ -3,6 +3,7 @@ package com.vraft.core.rpc;
 import java.net.InetSocketAddress;
 
 import com.vraft.core.rpc.RpcInitializer.ClientInitializer;
+import com.vraft.facade.common.CallBack;
 import com.vraft.facade.rpc.RpcBuilder;
 import com.vraft.facade.rpc.RpcClient;
 import com.vraft.facade.rpc.RpcConsts;
@@ -51,6 +52,26 @@ public class RpcClientImpl implements RpcClient {
         InetSocketAddress a = RpcCommon.parser(host);
         final ChannelFuture future = bs.connect(a);
         return future.awaitUninterruptibly(3000) ? future.channel() : null;
+    }
+
+    @Override
+    public boolean oneWay(long userId, String uid, byte[] header,
+        byte[] body) throws Exception {
+        return RpcCommon.dispatchOneWay(sysCtx, userId, uid, header, body);
+    }
+
+    @Override
+    public boolean twoWay(long userId, String uid, byte[] header,
+        byte[] body, long timeout, CallBack cb) throws Exception {
+        return RpcCommon.dispatchTwoWay(sysCtx, userId,
+            uid, header, body, timeout, cb);
+    }
+
+    @Override
+    public boolean resp(SystemCtx ctx, long userId, long msgId,
+        String uid, byte[] header, byte[] body) throws Exception {
+        return RpcCommon.dispatchResp(sysCtx, userId,
+            msgId, uid, header, body);
     }
 
     private Bootstrap newTcpClient(RpcBuilder bd) throws Exception {

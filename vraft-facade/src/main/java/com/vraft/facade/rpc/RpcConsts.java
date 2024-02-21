@@ -10,9 +10,9 @@ public class RpcConsts {
     public static int SERVER = 3;
     public static int CLIENT = 4;
 
-    public static int RPC_ONE_WAY = 1;
-    public static int RPC_TWO_WAY = 2;
-    public static int RPC_RESPONSE = 3;
+    public static byte RPC_ONE_WAY = 1;
+    public static byte RPC_TWO_WAY = 2;
+    public static byte RPC_RESPONSE = 3;
 
     public static short RPC_MAGIC = 0x1210;
     public static byte RPC_VERSION = 0x01;
