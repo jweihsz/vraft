@@ -8,9 +8,5 @@ import com.vraft.facade.common.LifeCycle;
  **/
 public interface RpcClient extends LifeCycle, RpcRemoting {
 
-    boolean registerUserId(Object ch);
-
-    boolean unregisterUserId(Object ch);
-
     Object doConnect(String host) throws Exception;
 }

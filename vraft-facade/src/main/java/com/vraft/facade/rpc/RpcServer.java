@@ -8,8 +8,4 @@ import com.vraft.facade.common.LifeCycle;
  **/
 public interface RpcServer extends LifeCycle, RpcRemoting {
 
-    boolean registerUserId(Object ch);
-
-    boolean unregisterUserId(Object ch);
-
 }

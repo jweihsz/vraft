@@ -42,13 +42,15 @@ public class RpcCommon {
     public static final byte[] EMPTY_BUFFER = new byte[0];
 
     public static final AttributeKey<Long> CH_KEY;
-    public static final AttributeKey<Long> CH_ACTOR;
+    public static final AttributeKey<Long> CH_W_ACTOR;
+    public static final AttributeKey<Long> CH_R_ACTOR;
     public static final AttributeKey<Map<Long, Object>> CH_PEND;
 
     static {
         CH_KEY = AttributeKey.valueOf("ch_key");
-        CH_ACTOR = AttributeKey.valueOf("ch_actor");
         CH_PEND = AttributeKey.valueOf("ch_resp_pend");
+        CH_W_ACTOR = AttributeKey.valueOf("ch_r_actor");
+        CH_R_ACTOR = AttributeKey.valueOf("ch_w_actor");
     }
 
     public static Class<? extends SocketChannel> clientCls() {
@@ -117,9 +119,14 @@ public class RpcCommon {
         return ch.attr(RpcCommon.CH_KEY).get();
     }
 
-    public static long getUserActor(Channel ch) {
+    public static long getWriteActor(Channel ch) {
         if (ch == null) {return -1L;}
-        return ch.attr(RpcCommon.CH_ACTOR).get();
+        return ch.attr(RpcCommon.CH_W_ACTOR).get();
+    }
+
+    public static long getReadActor(Channel ch) {
+        if (ch == null) {return -1L;}
+        return ch.attr(RpcCommon.CH_R_ACTOR).get();
     }
 
     public static ByteBuf convert(String str) {

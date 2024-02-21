@@ -22,19 +22,20 @@ import io.netty.channel.Channel;
  * @version 2024/2/12 10:00
  **/
 public class RpcHelper {
-
     private final SystemCtx sysCtx;
     private final RpcManager rpcMgr;
     private final ActorSystem actorSys;
     private final Consumer<Object> apply;
     private final BatchWrite batchWrite;
-
+    private final TwoWayResp twoWayResp;
+ 
     public RpcHelper(SystemCtx sysCtx, RpcManager rpcMgr) {
         this.sysCtx = sysCtx;
         this.rpcMgr = rpcMgr;
         this.apply = buildConsumer(rpcMgr);
         this.actorSys = ActorSystem.INSTANCE;
         this.batchWrite = new BatchWrite(sysCtx, rpcMgr);
+        this.twoWayResp = new TwoWayResp(sysCtx, rpcMgr);
     }
 
     public boolean dispatchRpc(Object channel, byte rq,
@@ -44,7 +45,7 @@ public class RpcHelper {
         final Channel ch = (Channel)channel;
         if (!ch.isWritable()) {return false;}
         final long userId = RpcCommon.getUserId(ch);
-        final long actorId = RpcCommon.getUserActor(ch);
+        long actorId = RpcCommon.getWriteActor(ch);
         if (userId <= 0 || actorId <= 0) {return false;}
         final RpcCmd cmd = buildBaseCmd(userId, rq,
             msgId, uid, body, header, cb, timeout);
@@ -203,9 +204,9 @@ public class RpcHelper {
             final RpcCmd cmd = (RpcCmd)param;
             cmd.setEx(timeout);
             Channel ch = rpcMgr.getChannel(cmd.getUserId());
-            long actorId = RpcCommon.getUserActor(ch);
-            if (ch == null || actorId <= 0
-                || !dispatchRpcCmd(actorId, cmd)) {
+            long actorId = RpcCommon.getReadActor(ch);
+            if (ch == null || actorId <= 0) {return;}
+            if (!actorSys.dispatch(actorId, cmd, twoWayResp)) {
                 cmd.recycle();
             }
         };
@@ -213,11 +214,11 @@ public class RpcHelper {
 
     private class BatchWrite implements ActorProcessor<RpcCmd> {
         private int curSize = 0;
-        private final int maxNum = 1024;
-        private final int maxSize = 524288;//512KB
         private final SystemCtx sysCtx;
         private final RpcManager rpcMgr;
         private final ArrayList<RpcCmd> nodes;
+        private final int maxNum = 1024;
+        private final int maxSize = 524288;
 
         public BatchWrite(SystemCtx sysCtx,
             RpcManager rpcMgr) {
@@ -239,7 +240,6 @@ public class RpcHelper {
                     tryHandle(false);
                 }
             } while (System.currentTimeMillis() <= deadline);
-
         }
 
         private void tryHandle(boolean exit) {
@@ -269,6 +269,35 @@ public class RpcHelper {
         private void doAfter() {
             curSize = 0;
             nodes.clear();
+        }
+    }
+
+    private class TwoWayResp implements ActorProcessor<RpcCmd> {
+        private final SystemCtx sysCtx;
+        private final RpcManager rpcMgr;
+
+        public TwoWayResp(SystemCtx sysCtx,
+            RpcManager rpcMgr) {
+            this.sysCtx = sysCtx;
+            this.rpcMgr = rpcMgr;
+        }
+
+        @Override
+        public void process(long deadline, Actor<RpcCmd> self) {
+            do {
+                RpcCmd cmd = self.getQueue().peek();
+                if (cmd == null) {break;}
+                runCb(cmd);
+                cmd.recycle();
+            } while (System.currentTimeMillis() <= deadline);
+        }
+
+        private void runCb(RpcCmd cmd) {
+            try {
+                if (cmd.getCallBack() == null) {return;}
+                cmd.getCallBack().run(cmd.getHeader(),
+                    cmd.getBody(), cmd.getEx());
+            } catch (Exception ex) {}
         }
     }
 

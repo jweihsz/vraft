@@ -6,7 +6,6 @@ import com.vraft.facade.rpc.RpcConsts;
 import com.vraft.facade.rpc.RpcProcessor;
 import com.vraft.facade.rpc.RpcServer;
 import com.vraft.facade.system.SystemCtx;
-import com.vraft.facade.uid.UidService;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelOption;
@@ -58,36 +57,17 @@ public class RpcServerImpl implements RpcServer {
     }
 
     @Override
-    public boolean registerUserId(Object ch) {
-        if (ch == null) {return false;}
-        if (!(ch instanceof Channel)) {return false;}
-        UidService uid = sysCtx.getUidService();
-        long userId = uid.genUserId();
-        long actorId = uid.genActorId();
-        rpcMgr.addChannel(userId, actorId, (Channel)ch);
-        return true;
-    }
-
-    @Override
-    public boolean unregisterUserId(Object ch) {
-        if (ch == null) {return false;}
-        if (!(ch instanceof Channel)) {return false;}
-        rpcMgr.removeChannel((Channel)ch);
-        return true;
-    }
-
-    @Override
     public void removeProcessor(String uid) {
         rpcMgr.removeProcessor(uid);
     }
 
     @Override
-    public RpcProcessor<?> getProcessor(Object uid) {
+    public RpcProcessor getProcessor(Object uid) {
         return rpcMgr.getProcessor(uid);
     }
 
     @Override
-    public void addProcessor(String uid, RpcProcessor<?> rp) {
+    public void addProcessor(String uid, RpcProcessor rp) {
         rpcMgr.addProcessor(uid, rp);
     }
 
@@ -98,7 +78,7 @@ public class RpcServerImpl implements RpcServer {
         setOpts(b);
         b.group(boss, worker);
         b.channel(RpcCommon.serverCls());
-        b.childHandler(new ServerInitializer(sysCtx, this));
+        b.childHandler(new ServerInitializer(sysCtx, rpcMgr, rpcHelper));
         return b.bind(bd.getHost(), bd.getPort()).sync().channel();
     }
 

@@ -8,7 +8,7 @@ public interface RpcRemoting {
 
     void removeProcessor(String uid);
 
-    RpcProcessor<?> getProcessor(Object uid);
+    RpcProcessor getProcessor(Object uid);
 
-    void addProcessor(String uid, RpcProcessor<?> rp);
+    void addProcessor(String uid, RpcProcessor rp);
 }
