@@ -7,7 +7,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.vraft.core.pool.ThreadPool;
+import io.netty.buffer.ByteBuf;
 import io.netty.util.internal.PlatformDependent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,12 +19,12 @@ import org.slf4j.LoggerFactory;
  **/
 public class ActorSystem {
     private static final Logger logger = LoggerFactory.getLogger(ActorSystem.class);
+
     private final ThreadPoolExecutor executor;
     private final AtomicInteger actorsCount;
     private final ConcurrentMap<Long, Actor> actors;
-    public static final ActorSystem INSTANCE = new ActorSystem(ThreadPool.ACTOR);
 
-    private ActorSystem(ThreadPoolExecutor executor) {
+    public ActorSystem(ThreadPoolExecutor executor) {
         this.executor = executor;
         this.actorsCount = new AtomicInteger();
         this.actors = new ConcurrentHashMap<>();
@@ -71,6 +71,8 @@ public class ActorSystem {
     }
 
     public interface ActorProcessor<T> {
+        long actorId(long userId, ByteBuf uid);
+
         void process(long deadline, Actor<T> self);
     }
 
@@ -134,8 +136,9 @@ public class ActorSystem {
 
         private boolean canBeSchedule(boolean hasMessageHint) {
             int s = currentStatus();
-            if (s == Open || s == Scheduled) { return hasMessageHint || !queue.isEmpty(); }
-            return false;
+            return (s == Open || s == Scheduled)
+                && (hasMessageHint || !queue.isEmpty());
+
         }
 
         public final boolean resume() {

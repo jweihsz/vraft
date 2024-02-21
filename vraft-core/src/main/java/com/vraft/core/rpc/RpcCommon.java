@@ -1,10 +1,21 @@
 package com.vraft.core.rpc;
 
 import java.net.InetSocketAddress;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Consumer;
 
+import com.vraft.core.pool.ObjectsPool;
+import com.vraft.facade.actor.ActorService;
+import com.vraft.facade.common.CallBack;
+import com.vraft.facade.rpc.RpcCmd;
+import com.vraft.facade.rpc.RpcConsts;
+import com.vraft.facade.rpc.RpcManager;
+import com.vraft.facade.system.SystemCtx;
+import com.vraft.facade.timer.TimerService;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.CompositeByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.EventLoopGroup;
@@ -42,15 +53,11 @@ public class RpcCommon {
     public static final byte[] EMPTY_BUFFER = new byte[0];
 
     public static final AttributeKey<Long> CH_KEY;
-    public static final AttributeKey<Long> CH_W_ACTOR;
-    public static final AttributeKey<Long> CH_R_ACTOR;
     public static final AttributeKey<Map<Long, Object>> CH_PEND;
 
     static {
         CH_KEY = AttributeKey.valueOf("ch_key");
         CH_PEND = AttributeKey.valueOf("ch_resp_pend");
-        CH_W_ACTOR = AttributeKey.valueOf("ch_r_actor");
-        CH_R_ACTOR = AttributeKey.valueOf("ch_w_actor");
     }
 
     public static Class<? extends SocketChannel> clientCls() {
@@ -119,16 +126,6 @@ public class RpcCommon {
         return ch.attr(RpcCommon.CH_KEY).get();
     }
 
-    public static long getWriteActor(Channel ch) {
-        if (ch == null) {return -1L;}
-        return ch.attr(RpcCommon.CH_W_ACTOR).get();
-    }
-
-    public static long getReadActor(Channel ch) {
-        if (ch == null) {return -1L;}
-        return ch.attr(RpcCommon.CH_R_ACTOR).get();
-    }
-
     public static ByteBuf convert(String str) {
         return Unpooled.copiedBuffer(str, CharsetUtil.UTF_8);
     }
@@ -195,6 +192,147 @@ public class RpcCommon {
         final int size = getRpcBodySize(bf);
         final int index = getRpcBodyIndex(bf);
         return bf.slice(index, size);
+    }
+
+    public static boolean dispatchRpc(SystemCtx ctx, long userId,
+        byte rq, long msgId, String uid, byte[] header,
+        byte[] body, long timeout, CallBack cb) throws Exception {
+        ActorService actor = ctx.getActorService();
+        final RpcCmd cmd = buildBaseCmd(userId, rq,
+            msgId, uid, body, header, cb, timeout);
+        if (actor.dispatchWriteChMsg(userId, cmd)) {return true;}
+        ((RpcCmdExt)cmd).recycle();
+        return false;
+    }
+
+    public static boolean invokeBatch(SystemCtx ctx, long userId,
+        Consumer<Object> apply, List<RpcCmd> nodes) {
+        CompositeByteBuf cbf = null;
+        final RpcManager mgr = ctx.getRpcManager();
+        Channel ch = (Channel)mgr.getChannel(userId);
+        if (ch == null || !ch.isWritable()) {return false;}
+        if (nodes == null || nodes.isEmpty()) {return false;}
+        cbf = Unpooled.compositeBuffer(nodes.size());
+        int size = 0;
+        for (RpcCmd cmd : nodes) {
+            ByteBuf bf = processRpcCmd(ctx, apply, cmd);
+            if (bf == null) {continue;}
+            cbf.addComponent(true, bf);
+            size += 1;
+        }
+        if (size <= 0) {
+            cbf.release();
+            return false;
+        } else {
+            ch.writeAndFlush(cbf);
+            return true;
+        }
+    }
+
+    public static RpcCmd buildBaseCmd(long userId, byte rq,
+        long id, String uid, byte[] body, byte[] header,
+        CallBack cb, long timeout) {
+        RpcCmd cmd = ObjectsPool.RPC_CMD_RECYCLER.get();
+        cmd.setCallBack(cb);
+        cmd.setMsgId(id);
+        cmd.setReq(rq);
+        cmd.setUserId(userId);
+        cmd.setUid(uid);
+        cmd.setHeader(header);
+        cmd.setBody(body);
+        cmd.setTimeout(timeout);
+        cmd.setMsgId(id);
+        return cmd;
+    }
+
+    public static ByteBuf processRpcCmd(SystemCtx ctx,
+        Consumer<Object> apply, RpcCmd cmd) {
+        if (RpcConsts.isOneWay(cmd.getReq())) {
+            return buildOneWayPkg(cmd);
+        } else if (RpcConsts.isResp(cmd.getReq())) {
+            return buildOneWayPkg(cmd);
+        } else if (RpcConsts.isTwoWay(cmd.getReq())) {
+            return buildTwoWayPkg(ctx, apply, cmd);
+        }
+        return null;
+    }
+
+    public static ByteBuf buildOneWayPkg(RpcCmd cmd) {
+        return buildBasePkg(
+            cmd.getReq(),
+            cmd.getMsgId(),
+            cmd.getUid(),
+            cmd.getHeader(),
+            cmd.getBody());
+    }
+
+    private static ByteBuf buildTwoWayPkg(SystemCtx ctx,
+        Consumer<Object> apply, RpcCmd cmd) {
+        ByteBuf bf = buildBasePkg(cmd.getReq(), cmd.getMsgId(),
+            cmd.getUid(), cmd.getHeader(), cmd.getBody());
+        final RpcManager mgr = ctx.getRpcManager();
+        TimerService timer = ctx.getTimerService();
+        Object task = timer.addTimeout(apply, cmd, cmd.getTimeout());
+        if (task == null) {
+            bf.release();
+            ((RpcCmdExt)cmd).recycle();
+            return null;
+        } else {
+            cmd.setExt(task);
+            mgr.addPendMsg(cmd.getUserId(), cmd.getMsgId(), cmd);
+            return bf;
+        }
+    }
+
+    public static ByteBuf buildBasePkg(byte rq, long id,
+        String uid, byte[] header, byte[] body) {
+        int totalLen = RpcCommon.RPC_MATE_SIZE;
+        byte[] bodyBuf, uidBuf, headerBuf;
+        if (body == null) {
+            bodyBuf = RpcCommon.EMPTY_BUFFER;
+        } else {
+            bodyBuf = body;
+        }
+        totalLen += bodyBuf.length;
+        if (header == null) {
+            headerBuf = RpcCommon.EMPTY_BUFFER;
+        } else {
+            headerBuf = header;
+        }
+        totalLen += headerBuf.length;
+        if (uid == null) {
+            uidBuf = RpcCommon.EMPTY_BUFFER;
+        } else {
+            uidBuf = uid.getBytes();
+        }
+        totalLen += uidBuf.length;
+        ByteBuf mate = Unpooled.buffer(32);
+        mate.writeShort(RpcConsts.RPC_MAGIC);
+        mate.writeInt(totalLen);
+        mate.writeByte(RpcConsts.RPC_VERSION);
+        mate.writeByte(rq);
+        mate.writeLong(id);
+        mate.writeInt(uidBuf.length);
+        mate.writeInt(headerBuf.length);
+        mate.writeInt(bodyBuf.length);
+        return Unpooled.wrappedBuffer(
+            mate.array(), uidBuf, headerBuf, bodyBuf);
+    }
+
+    public static Consumer<Object> buildConsumer(RpcManager rpcMgr, ActorService actor) {
+        final Throwable timeout = new Exception("rpc time out");
+        return (param) -> {
+            if (!(param instanceof RpcCmd)) {return;}
+            final RpcCmd temp = (RpcCmd)param;
+            final long msgId = temp.getMsgId();
+            final long userId = temp.getUserId();
+            Object obj = rpcMgr.removePendMsg(userId, msgId);
+            if (!(obj instanceof RpcCmd)) {return;}
+            final RpcCmd cmd = (RpcCmd)param;
+            cmd.setEx(timeout);
+            if (actor.dispatchAsyncRsp(userId, cmd)) {return;}
+            ((RpcCmdExt)cmd).recycle();
+        };
     }
 }
 

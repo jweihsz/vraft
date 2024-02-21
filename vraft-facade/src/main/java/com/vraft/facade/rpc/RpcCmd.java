@@ -1,12 +1,11 @@
-package com.vraft.core.rpc;
+package com.vraft.facade.rpc;
 
 import com.vraft.facade.common.CallBack;
-import io.netty.util.Recycler.Handle;
 import lombok.Data;
 
 /**
  * @author jweihsz
- * @version 2024/2/18 16:09
+ * @version 2024/2/21 15:48
  **/
 @Data
 public class RpcCmd {
@@ -20,15 +19,8 @@ public class RpcCmd {
     private long timeout;
     private Throwable ex;
     private CallBack callBack;
-    private transient Handle<RpcCmd> handle;
 
-    public RpcCmd() {}
-
-    public RpcCmd(Handle<RpcCmd> handle) {
-        this.handle = handle;
-    }
-
-    public void recycle() {
+    public void rest() {
         this.req = -1;
         this.msgId = -1;
         this.userId = -1;
@@ -39,7 +31,5 @@ public class RpcCmd {
         this.header = null;
         this.callBack = null;
         this.timeout = -1L;
-        this.handle.recycle(this);
     }
-
 }

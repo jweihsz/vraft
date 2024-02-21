@@ -3,7 +3,6 @@ package com.vraft.core.rpc;
 import com.vraft.core.rpc.RpcInitializer.ServerInitializer;
 import com.vraft.facade.rpc.RpcBuilder;
 import com.vraft.facade.rpc.RpcConsts;
-import com.vraft.facade.rpc.RpcProcessor;
 import com.vraft.facade.rpc.RpcServer;
 import com.vraft.facade.system.SystemCtx;
 import io.netty.bootstrap.ServerBootstrap;
@@ -23,15 +22,11 @@ public class RpcServerImpl implements RpcServer {
     private Channel channel;
     private final RpcBuilder bd;
     private final SystemCtx sysCtx;
-    private final RpcManager rpcMgr;
-    private final RpcHelper rpcHelper;
     private EventLoopGroup boss, worker;
 
     public RpcServerImpl(SystemCtx sysCtx, RpcBuilder bd) {
         this.bd = bd;
         this.sysCtx = sysCtx;
-        this.rpcMgr = new RpcManager(sysCtx);
-        this.rpcHelper = new RpcHelper(sysCtx, rpcMgr);
     }
 
     @Override
@@ -56,21 +51,6 @@ public class RpcServerImpl implements RpcServer {
         }
     }
 
-    @Override
-    public void removeProcessor(String uid) {
-        rpcMgr.removeProcessor(uid);
-    }
-
-    @Override
-    public RpcProcessor getProcessor(Object uid) {
-        return rpcMgr.getProcessor(uid);
-    }
-
-    @Override
-    public void addProcessor(String uid, RpcProcessor rp) {
-        rpcMgr.addProcessor(uid, rp);
-    }
-
     private Channel newTcpServer(RpcBuilder bd) throws Exception {
         final ServerBootstrap b = new ServerBootstrap();
         boss = RpcCommon.eventLoop(bd.getBossNum());
@@ -78,7 +58,7 @@ public class RpcServerImpl implements RpcServer {
         setOpts(b);
         b.group(boss, worker);
         b.channel(RpcCommon.serverCls());
-        b.childHandler(new ServerInitializer(sysCtx, rpcMgr, rpcHelper));
+        b.childHandler(new ServerInitializer(sysCtx));
         return b.bind(bd.getHost(), bd.getPort()).sync().channel();
     }
 

@@ -2,6 +2,7 @@ package com.vraft.core.rpc;
 
 import com.vraft.core.rpc.RpcCodec.Decoder;
 import com.vraft.core.rpc.RpcCodec.Encoder;
+import com.vraft.facade.rpc.RpcManager;
 import com.vraft.facade.system.SystemCtx;
 import com.vraft.facade.uid.UidService;
 import io.netty.buffer.ByteBuf;
@@ -24,16 +25,11 @@ public class RpcInitializer {
     public static class ClientInitializer
         extends ChannelInitializer<SocketChannel> {
         private final SystemCtx sysCtx;
-        private final RpcManager rpcMgr;
-        private final RpcHelper rpcHelper;
         private final RpcClientHandler handler;
 
-        public ClientInitializer(SystemCtx sysCtx,
-            RpcManager rpcMgr, RpcHelper rpcHelper) {
+        public ClientInitializer(SystemCtx sysCtx) {
             this.sysCtx = sysCtx;
-            this.rpcMgr = rpcMgr;
-            this.rpcHelper = rpcHelper;
-            this.handler = new RpcClientHandler(sysCtx, rpcMgr, rpcHelper);
+            this.handler = new RpcClientHandler(sysCtx);
         }
 
         @Override
@@ -49,16 +45,11 @@ public class RpcInitializer {
     public static class ServerInitializer
         extends ChannelInitializer<SocketChannel> {
         private final SystemCtx sysCtx;
-        private final RpcManager rpcMgr;
-        private final RpcHelper rpcHelper;
         private final RpcServerHandler handler;
 
-        public ServerInitializer(SystemCtx sysCtx,
-            RpcManager rpcMgr, RpcHelper rpcHelper) {
+        public ServerInitializer(SystemCtx sysCtx) {
             this.sysCtx = sysCtx;
-            this.rpcMgr = rpcMgr;
-            this.rpcHelper = rpcHelper;
-            this.handler = new RpcServerHandler(sysCtx, rpcMgr, rpcHelper);
+            this.handler = new RpcServerHandler(sysCtx);
         }
 
         @Override
@@ -75,14 +66,9 @@ public class RpcInitializer {
     public static class RpcServerHandler
         extends ChannelDuplexHandler {
         private final SystemCtx sysCtx;
-        private final RpcManager rpcMgr;
-        private final RpcHelper rpcHelper;
 
-        public RpcServerHandler(SystemCtx sysCtx,
-            RpcManager rpcMgr, RpcHelper rpcHelper) {
+        public RpcServerHandler(SystemCtx sysCtx) {
             this.sysCtx = sysCtx;
-            this.rpcMgr = rpcMgr;
-            this.rpcHelper = rpcHelper;
         }
 
         @Override
@@ -90,14 +76,15 @@ public class RpcInitializer {
             logger.info("channel active:{}",
                 RpcCommon.remoteAddress(ctx.channel()));
             UidService uid = sysCtx.getUidService();
-            long userId = uid.genUserId();
-            rpcMgr.addChannel(userId, ctx.channel());
+            RpcManager rpcMgr = sysCtx.getRpcManager();
+            rpcMgr.addChannel(uid.genUserId(), ctx.channel());
         }
 
         @Override
         public void channelInactive(ChannelHandlerContext ctx) throws Exception {
             logger.info("channel inactive:{}",
                 RpcCommon.remoteAddress(ctx.channel()));
+            RpcManager rpcMgr = sysCtx.getRpcManager();
             rpcMgr.removeChannel(ctx.channel());
         }
 
@@ -128,15 +115,9 @@ public class RpcInitializer {
     public static class RpcClientHandler
         extends ChannelDuplexHandler {
         private final SystemCtx sysCtx;
-        private final RpcManager rpcMgr;
-        private final RpcHelper rpcHelper;
 
-        public RpcClientHandler(SystemCtx sysCtx,
-            RpcManager rpcMgr, RpcHelper rpcHelper) {
+        public RpcClientHandler(SystemCtx sysCtx) {
             this.sysCtx = sysCtx;
-            this.rpcMgr = rpcMgr;
-            this.rpcHelper = rpcHelper;
-
         }
 
         @Override
@@ -144,14 +125,15 @@ public class RpcInitializer {
             logger.info("channel active:{}",
                 RpcCommon.remoteAddress(ctx.channel()));
             UidService uid = sysCtx.getUidService();
-            long userId = uid.genUserId();
-            rpcMgr.addChannel(userId, ctx.channel());
+            RpcManager rpcMgr = sysCtx.getRpcManager();
+            rpcMgr.addChannel(uid.genUserId(), ctx.channel());
         }
 
         @Override
         public void channelInactive(ChannelHandlerContext ctx) throws Exception {
             logger.info("channel inactive:{}",
                 RpcCommon.remoteAddress(ctx.channel()));
+            RpcManager rpcMgr = sysCtx.getRpcManager();
             rpcMgr.removeChannel(ctx.channel());
         }
 
@@ -172,7 +154,6 @@ public class RpcInitializer {
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx,
             Throwable cause) throws Exception {
-
         }
     }
 

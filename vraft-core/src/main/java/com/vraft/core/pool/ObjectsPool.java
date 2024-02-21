@@ -1,6 +1,6 @@
 package com.vraft.core.pool;
 
-import com.vraft.core.rpc.RpcCmd;
+import com.vraft.core.rpc.RpcCmdExt;
 import com.vraft.core.timer.TimerTask;
 import io.netty.util.Recycler;
 
@@ -18,10 +18,10 @@ public class ObjectsPool {
         }
     };
 
-    public static final Recycler<RpcCmd> RPC_CMD_RECYCLER = new Recycler<RpcCmd>() {
+    public static final Recycler<RpcCmdExt> RPC_CMD_RECYCLER = new Recycler<RpcCmdExt>() {
         @Override
-        protected RpcCmd newObject(Handle<RpcCmd> handle) {
-            return new RpcCmd(handle);
+        protected RpcCmdExt newObject(Handle<RpcCmdExt> handle) {
+            return new RpcCmdExt(handle);
         }
     };
 
