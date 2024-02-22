@@ -29,4 +29,11 @@ public class CfgParserTest {
         logger.info("config path:{}", configServer.getCfgFile());
     }
 
+    @Test
+    public void testLoadRpcNode() throws Exception {
+        configServer.startup();
+        logger.info("rpc node config :{}", configServer.getCfgRpcNode());
+
+    }
+
 }
