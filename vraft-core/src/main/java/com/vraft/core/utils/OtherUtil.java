@@ -23,35 +23,38 @@ public class OtherUtil {
             try {
                 Object arg = null;
                 String key = parsePropsKey(mn);
-                String property = p.getProperty(key);
-                if (property == null) {continue;}
+                String prop = System.getenv(key);
+                if (prop == null || prop.isEmpty()) {
+                    prop = p.getProperty(key);
+                }
+                if (prop == null) {continue;}
                 Class<?>[] pt = method.getParameterTypes();
                 if (pt.length <= 0) {continue;}
                 String cn = pt[0].getSimpleName();
                 switch (cn) {
                     case "int":
                     case "Integer":
-                        arg = Integer.parseInt(property);
+                        arg = Integer.parseInt(prop);
                         break;
                     case "long":
                     case "Long":
-                        arg = Long.parseLong(property);
+                        arg = Long.parseLong(prop);
                         break;
                     case "double":
                     case "Double":
-                        arg = Double.parseDouble(property);
+                        arg = Double.parseDouble(prop);
                         break;
                     case "boolean":
                     case "Boolean":
-                        arg = Boolean.parseBoolean(property);
+                        arg = Boolean.parseBoolean(prop);
                         break;
                     case "float":
                     case "Float":
-                        arg = Float.parseFloat(property);
+                        arg = Float.parseFloat(prop);
                         break;
                     case "String":
-                        property = property.trim();
-                        arg = property;
+                        prop = prop.trim();
+                        arg = prop;
                         break;
                     default:
                         continue;
