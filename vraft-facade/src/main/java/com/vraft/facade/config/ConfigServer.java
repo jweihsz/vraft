@@ -8,6 +8,8 @@ import com.vraft.facade.common.LifeCycle;
  **/
 public interface ConfigServer extends LifeCycle {
 
+    default String getCfgFile() {return null;}
+
     default CfgRpcNode getCfgRpcNode() {return null;}
 
 }

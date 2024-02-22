@@ -1,6 +1,5 @@
 package com.vraft.core.actor;
 
-import java.lang.reflect.Field;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -83,27 +82,18 @@ public class ActorSystem {
         private static final int Scheduled = 2;
         private static final int shouldScheduleMask = 3;
         private static final int shouldNotProcessMask = ~2;
-        private static long statusOffset;
         private final Queue<E> queue;
-        private volatile int status;
+        private AtomicInteger status;
         private long total, actorId;
         private volatile long submitTs;
         private volatile long executeTs;
         final ActorSystem actorSystem;
         final ActorProcessor<E> processor;
 
-        static {
-            try {
-                statusOffset = Unsafe.instance.objectFieldOffset(
-                    Actor.class.getDeclaredField("status"));
-            } catch (Throwable t) {
-                throw new ExceptionInInitializerError(t);
-            }
-        }
-
         public Actor(long actorId, ActorSystem actorSystem,
             ActorProcessor<E> processor) {
             this.actorId = actorId;
+            this.status = new AtomicInteger();
             this.actorSystem = actorSystem;
             this.processor = processor;
             this.queue = PlatformDependent.newMpscQueue();
@@ -173,12 +163,10 @@ public class ActorSystem {
             }
         }
 
-        final int currentStatus() {
-            return Unsafe.instance.getIntVolatile(this, statusOffset);
-        }
+        final int currentStatus() {return status.get();}
 
         private boolean updateStatus(int oldStatus, int newStatus) {
-            return Unsafe.instance.compareAndSwapInt(this, statusOffset, oldStatus, newStatus);
+            return status.compareAndSet(oldStatus, newStatus);
         }
 
         @Override
@@ -206,28 +194,4 @@ public class ActorSystem {
         public abstract int compare(Actor a1, Actor a2);
     }
 
-    static class Unsafe {
-        public final static sun.misc.Unsafe instance;
-
-        static {
-            try {
-                sun.misc.Unsafe found = null;
-                for (Field field : sun.misc.Unsafe.class.getDeclaredFields()) {
-                    if (field.getType() == sun.misc.Unsafe.class) {
-                        field.setAccessible(true);
-                        found = (sun.misc.Unsafe)field.get(null);
-                        break;
-                    }
-                }
-                if (found == null) {
-                    throw new IllegalStateException(
-                        "Can't find instance of sun.misc.Unsafe");
-                } else {
-                    instance = found;
-                }
-            } catch (Throwable t) {
-                throw new ExceptionInInitializerError(t);
-            }
-        }
-    }
 }

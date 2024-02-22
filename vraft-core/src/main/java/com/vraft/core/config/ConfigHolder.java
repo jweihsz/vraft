@@ -1,6 +1,5 @@
 package com.vraft.core.config;
 
-import java.util.Objects;
 import java.util.Properties;
 
 import com.vraft.core.utils.OtherUtil;
@@ -37,6 +36,19 @@ public class ConfigHolder implements ConfigServer {
         return cfgRpcNode;
     }
 
+    @Override
+    public String getCfgFile() {
+        final String flag = "raft.env";
+        String env = System.getProperty(flag);
+        if (env == null || env.isEmpty()) {
+            env = System.getenv(flag);
+        }
+        if (env == null || env.isEmpty()) {
+            env = "daily";
+        }
+        return env + ".properties";
+    }
+
     private void loadSysCfg() throws Exception {
         Properties props = parseCfg(getCfgFile());
         cfgRpcNode = new CfgRpcNode();
@@ -49,15 +61,5 @@ public class ConfigHolder implements ConfigServer {
         ClassLoader cl = this.getClass().getClassLoader();
         props.load(cl.getResourceAsStream(path));
         return props;
-    }
-
-    private String getCfgFile() {
-        final String flag = "raft.env";
-        String env = System.getProperty(flag);
-        if (env == null || env.isEmpty()) {
-            env = System.getenv(flag);
-        }
-        Objects.requireNonNull(env);
-        return env + ".properties";
     }
 }

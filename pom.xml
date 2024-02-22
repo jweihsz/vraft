@@ -84,6 +84,11 @@
                 <artifactId>vraft-facade</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.vraft</groupId>
+                <artifactId>vraft-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
