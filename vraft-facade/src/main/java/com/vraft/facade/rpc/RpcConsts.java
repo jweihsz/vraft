@@ -5,11 +5,9 @@ package com.vraft.facade.rpc;
  * @version 2024/2/8 23:32
  **/
 public class RpcConsts {
-    public static int TCP = 1;
-    public static int UDP = 2;
-    public static int SERVER = 3;
-    public static int CLIENT = 4;
 
+    public static int CH_IDLE_MAX = 120;
+    
     public static byte RPC_ONE_WAY = 1;
     public static byte RPC_TWO_WAY = 2;
     public static byte RPC_RESPONSE = 3;
