@@ -3,7 +3,6 @@ package com.vraft.core.rpc;
 import com.vraft.core.rpc.RpcInitializer.ServerInitializer;
 import com.vraft.facade.common.CallBack;
 import com.vraft.facade.config.CfgRpcNode;
-import com.vraft.facade.config.ConfigServer;
 import com.vraft.facade.rpc.RpcServer;
 import com.vraft.facade.system.SystemCtx;
 import io.netty.bootstrap.ServerBootstrap;
@@ -21,11 +20,13 @@ public class RpcServerImpl implements RpcServer {
     private final static Logger logger = LogManager.getLogger(RpcServerImpl.class);
 
     private Channel channel;
+    private final CfgRpcNode cfg;
     private final SystemCtx sysCtx;
     private final EventLoopGroup boss;
     private final EventLoopGroup worker;
 
-    public RpcServerImpl(SystemCtx sysCtx) {
+    public RpcServerImpl(SystemCtx sysCtx, CfgRpcNode cfg) {
+        this.cfg = cfg;
         this.sysCtx = sysCtx;
         this.boss = RpcCommon.BOSS_GROUP;
         this.worker = RpcCommon.WORKER_GROUP;
@@ -33,8 +34,8 @@ public class RpcServerImpl implements RpcServer {
 
     @Override
     public void startup() throws Exception {
-        final ConfigServer config = sysCtx.getConfigServer();
-        this.channel = newTcpServer(config.getCfgRpcNode());
+        this.channel = newTcpServer(cfg);
+        logger.info("rpc server start up:{}", channel.toString());
     }
 
     @Override
@@ -80,5 +81,4 @@ public class RpcServerImpl implements RpcServer {
         b.childOption(ChannelOption.SO_RCVBUF, cfg.getRpcRcvBufSize());
         b.childOption(ChannelOption.SO_SNDBUF, cfg.getRpcSndBufSize());
     }
-
 }

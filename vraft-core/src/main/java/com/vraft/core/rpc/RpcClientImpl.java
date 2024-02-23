@@ -5,7 +5,6 @@ import java.net.InetSocketAddress;
 import com.vraft.core.rpc.RpcInitializer.ClientInitializer;
 import com.vraft.facade.common.CallBack;
 import com.vraft.facade.config.CfgRpcNode;
-import com.vraft.facade.config.ConfigServer;
 import com.vraft.facade.rpc.RpcClient;
 import com.vraft.facade.system.SystemCtx;
 import io.netty.bootstrap.Bootstrap;
@@ -23,17 +22,18 @@ public class RpcClientImpl implements RpcClient {
     private final static Logger logger = LogManager.getLogger(RpcClientImpl.class);
 
     private Bootstrap bs;
+    private final CfgRpcNode cfg;
     private EventLoopGroup group;
     private final SystemCtx sysCtx;
 
-    public RpcClientImpl(SystemCtx sysCtx) {
+    public RpcClientImpl(SystemCtx sysCtx, CfgRpcNode cfg) {
+        this.cfg = cfg;
         this.sysCtx = sysCtx;
     }
 
     @Override
     public void startup() throws Exception {
-        final ConfigServer config = sysCtx.getConfigServer();
-        this.bs = newTcpClient(config.getCfgRpcNode());
+        this.bs = newTcpClient(cfg);
     }
 
     @Override
