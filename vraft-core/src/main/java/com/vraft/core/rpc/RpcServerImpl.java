@@ -2,8 +2,8 @@ package com.vraft.core.rpc;
 
 import com.vraft.core.rpc.RpcInitializer.ServerInitializer;
 import com.vraft.facade.common.CallBack;
-import com.vraft.facade.rpc.RpcBuilder;
-import com.vraft.facade.rpc.RpcConsts;
+import com.vraft.facade.config.CfgRpcNode;
+import com.vraft.facade.config.ConfigServer;
 import com.vraft.facade.rpc.RpcServer;
 import com.vraft.facade.system.SystemCtx;
 import io.netty.bootstrap.ServerBootstrap;
@@ -21,34 +21,26 @@ public class RpcServerImpl implements RpcServer {
     private final static Logger logger = LogManager.getLogger(RpcServerImpl.class);
 
     private Channel channel;
-    private final RpcBuilder bd;
     private final SystemCtx sysCtx;
-    private EventLoopGroup boss, worker;
+    private final EventLoopGroup boss;
+    private final EventLoopGroup worker;
 
-    public RpcServerImpl(SystemCtx sysCtx, RpcBuilder bd) {
-        this.bd = bd;
+    public RpcServerImpl(SystemCtx sysCtx) {
         this.sysCtx = sysCtx;
+        this.boss = RpcCommon.BOSS_GROUP;
+        this.worker = RpcCommon.WORKER_GROUP;
     }
 
     @Override
     public void startup() throws Exception {
-        if (bd.getWire() == RpcConsts.TCP) {
-            this.channel = newTcpServer(bd);
-        } else if (bd.getWire() == RpcConsts.UDP) {
-            this.channel = null;
-        }
+        final ConfigServer config = sysCtx.getConfigServer();
+        this.channel = newTcpServer(config.getCfgRpcNode());
     }
 
     @Override
     public void shutdown() {
         if (channel != null) {
             channel.close().syncUninterruptibly();
-        }
-        if (boss != null) {
-            boss.shutdownGracefully().syncUninterruptibly();
-        }
-        if (worker != null) {
-            worker.shutdownGracefully().syncUninterruptibly();
         }
     }
 
@@ -72,33 +64,21 @@ public class RpcServerImpl implements RpcServer {
             msgId, uid, header, body);
     }
 
-    private Channel newTcpServer(RpcBuilder bd) throws Exception {
+    private Channel newTcpServer(CfgRpcNode cfg) throws Exception {
         final ServerBootstrap b = new ServerBootstrap();
-        boss = RpcCommon.eventLoop(bd.getBossNum());
-        worker = RpcCommon.eventLoop(bd.getWorkerNum());
-        setOpts(b);
+        setOpts(b, cfg);
         b.group(boss, worker);
         b.channel(RpcCommon.serverCls());
         b.childHandler(new ServerInitializer(sysCtx));
-        return b.bind(bd.getHost(), bd.getPort()).sync().channel();
+        return b.bind(cfg.getRpcHost(), cfg.getRpcPort()).sync().channel();
     }
 
-    private void setOpts(ServerBootstrap b) {
+    private void setOpts(ServerBootstrap b, CfgRpcNode cfg) {
         b.option(ChannelOption.SO_REUSEADDR, Boolean.TRUE);
         b.childOption(ChannelOption.TCP_NODELAY, Boolean.TRUE);
         b.childOption(ChannelOption.SO_KEEPALIVE, Boolean.TRUE);
-        b.childOption(ChannelOption.SO_RCVBUF, 1024 * 1024);
-        b.childOption(ChannelOption.SO_SNDBUF, 1024 * 1024);
+        b.childOption(ChannelOption.SO_RCVBUF, cfg.getRpcRcvBufSize());
+        b.childOption(ChannelOption.SO_SNDBUF, cfg.getRpcSndBufSize());
     }
 
-    private void check(RpcBuilder nbd) {
-        if (nbd.getType() != RpcConsts.SERVER) {
-            logger.error("Not Server Type");
-            throw new RuntimeException();
-        }
-        if (nbd.getHost() == null) {
-            logger.error("Host empty");
-            throw new RuntimeException();
-        }
-    }
 }

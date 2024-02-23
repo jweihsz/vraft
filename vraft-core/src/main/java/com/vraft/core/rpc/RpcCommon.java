@@ -7,6 +7,7 @@ import java.util.Objects;
 import java.util.function.Consumer;
 
 import com.vraft.core.pool.ObjectsPool;
+import com.vraft.core.utils.SystemUtil;
 import com.vraft.facade.actor.ActorService;
 import com.vraft.facade.common.CallBack;
 import com.vraft.facade.rpc.RpcCmd;
@@ -50,15 +51,29 @@ public class RpcCommon {
      * header-content(bytes)|body-content(bytes)
      */
     public static int RPC_MATE_SIZE = 1 + 1 + 1 + 8 + 4 + 4 + 4;
-
     public static final byte[] EMPTY_BUFFER = new byte[0];
 
     public static final AttributeKey<Long> CH_KEY;
     public static final AttributeKey<Map<Long, Object>> CH_PEND;
 
+    public static final EventLoopGroup BOSS_GROUP;
+    public static final EventLoopGroup WORKER_GROUP;
+
     static {
         CH_KEY = AttributeKey.valueOf("ch_key");
         CH_PEND = AttributeKey.valueOf("ch_resp_pend");
+        BOSS_GROUP = eventLoop(1);
+        WORKER_GROUP = eventLoop(SystemUtil.getPhyCpuNum());
+    }
+
+    public static void shutdownBoss() {
+        BOSS_GROUP.shutdownGracefully()
+            .syncUninterruptibly();
+    }
+
+    public static void shutdownWorker() {
+        WORKER_GROUP.shutdownGracefully()
+            .syncUninterruptibly();
     }
 
     public static Class<? extends SocketChannel> clientCls() {

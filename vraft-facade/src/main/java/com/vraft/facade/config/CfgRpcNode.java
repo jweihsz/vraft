@@ -10,4 +10,6 @@ import lombok.Data;
 public class CfgRpcNode {
     private int rpcPort;
     private String rpcHost;
+    private int rpcRcvBufSize;
+    private int rpcSndBufSize;
 }

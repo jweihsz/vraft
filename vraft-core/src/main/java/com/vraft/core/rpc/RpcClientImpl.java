@@ -4,12 +4,13 @@ import java.net.InetSocketAddress;
 
 import com.vraft.core.rpc.RpcInitializer.ClientInitializer;
 import com.vraft.facade.common.CallBack;
-import com.vraft.facade.rpc.RpcBuilder;
+import com.vraft.facade.config.CfgRpcNode;
+import com.vraft.facade.config.ConfigServer;
 import com.vraft.facade.rpc.RpcClient;
-import com.vraft.facade.rpc.RpcConsts;
 import com.vraft.facade.system.SystemCtx;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -23,29 +24,20 @@ public class RpcClientImpl implements RpcClient {
 
     private Bootstrap bs;
     private EventLoopGroup group;
-    private final RpcBuilder bd;
     private final SystemCtx sysCtx;
 
-    public RpcClientImpl(SystemCtx sysCtx, RpcBuilder bd) {
-        this.bd = bd;
+    public RpcClientImpl(SystemCtx sysCtx) {
         this.sysCtx = sysCtx;
     }
 
     @Override
     public void startup() throws Exception {
-        if (bd.getWire() == RpcConsts.TCP) {
-            this.bs = newTcpClient(bd);
-        } else if (bd.getWire() == RpcConsts.UDP) {
-            this.bs = null;
-        }
+        final ConfigServer config = sysCtx.getConfigServer();
+        this.bs = newTcpClient(config.getCfgRpcNode());
     }
 
     @Override
-    public void shutdown() {
-        if (group != null) {
-            group.shutdownGracefully().syncUninterruptibly();
-        }
-    }
+    public void shutdown() {}
 
     @Override
     public Object doConnect(String host) throws Exception {
@@ -74,11 +66,13 @@ public class RpcClientImpl implements RpcClient {
             msgId, uid, header, body);
     }
 
-    private Bootstrap newTcpClient(RpcBuilder bd) throws Exception {
+    private Bootstrap newTcpClient(CfgRpcNode cfg) throws Exception {
         final Bootstrap b = new Bootstrap();
-        group = RpcCommon.eventLoop(bd.getBossNum());
+        group = RpcCommon.WORKER_GROUP;
         b.group(group);
-        b.channel(RpcCommon.serverCls());
+        b.channel(RpcCommon.clientCls());
+        b.option(ChannelOption.SO_RCVBUF, cfg.getRpcRcvBufSize());
+        b.option(ChannelOption.SO_SNDBUF, cfg.getRpcSndBufSize());
         b.handler(new ClientInitializer(sysCtx));
         return b;
     }

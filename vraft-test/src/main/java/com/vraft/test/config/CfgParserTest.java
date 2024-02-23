@@ -33,7 +33,6 @@ public class CfgParserTest {
     public void testLoadRpcNode() throws Exception {
         configServer.startup();
         logger.info("rpc node config :{}", configServer.getCfgRpcNode());
-
     }
 
 }
