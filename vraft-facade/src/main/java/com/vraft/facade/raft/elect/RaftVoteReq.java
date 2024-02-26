@@ -10,10 +10,10 @@ import lombok.Data;
 public class RaftVoteReq {
     private boolean isPre;
     private long groupId;
+    private long nodeId;
     private long curTerm;
     private long lastTerm;
     private long lastLogId;
     private String sourceId;
-    private String targetId;
 }
 
