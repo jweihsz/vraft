@@ -16,21 +16,21 @@ public class TimerHolder implements TimerService {
     private final static Logger logger = LogManager.getLogger(TimerHolder.class);
 
     private final SystemCtx sysCtx;
-    private final TimerWheel commonTw;
+    private final TimerWheel tw;
 
     public TimerHolder(SystemCtx sysCtx) {
         this.sysCtx = sysCtx;
-        this.commonTw = new TimerWheel(200_0000);
+        this.tw = new TimerWheel(200_0000);
     }
 
     @Override
     public void shutdown() {
-        commonTw.shutdown();
+        tw.shutdown();
     }
 
     @Override
     public void startup() throws Exception {
-        commonTw.startup();
+        tw.startup();
     }
 
     @Override
@@ -48,7 +48,7 @@ public class TimerHolder implements TimerService {
         TimerTask task = ObjectsPool.TIMER_TASK_RECYCLER.get();
         task.setApply(apply);
         task.setParams(param);
-        if (commonTw.addTimeout(task, delay)) {return task;}
+        if (tw.addTimeout(task, delay)) {return task;}
         task.recycle();
         return null;
     }
