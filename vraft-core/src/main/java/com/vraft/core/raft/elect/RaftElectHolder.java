@@ -1,6 +1,7 @@
 package com.vraft.core.raft.elect;
 
 import java.util.Map;
+import java.util.Set;
 
 import com.vraft.facade.raft.elect.RaftElectService;
 import com.vraft.facade.raft.elect.RaftVoteReq;
@@ -35,14 +36,14 @@ public class RaftElectHolder implements RaftElectService {
 
     public void doVoteReq() {
         RaftNodeGroup nodeGroup = sysCtx.getNodeGroup();
-        Map<Long, Map<Long, RaftNodeMate>> map = nodeGroup.getAll();
+        Map<Long, Set<RaftNodeMate>> map = nodeGroup.getAll();
         if (map == null || map.isEmpty()) {return;}
         map.values().forEach(this::doVoteReqGroup);
     }
 
-    private void doVoteReqGroup(Map<Long, RaftNodeMate> group) {
+    private void doVoteReqGroup(Set<RaftNodeMate> group) {
         if (group == null || group.isEmpty()) {return;}
-        group.values().forEach(this::doVoteReqNode);
+        group.forEach(this::doVoteReqNode);
     }
 
     private void doVoteReqNode(RaftNodeMate node) {
