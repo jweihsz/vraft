@@ -5,15 +5,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import com.vraft.facade.serializer.Serializer;
 import com.vraft.facade.serializer.SerializerEnum;
-
 import io.fury.Fury;
 import io.fury.config.FuryBuilder;
 import io.fury.config.Language;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * @author jweih.hjw
@@ -25,10 +23,11 @@ public class FurySerialize implements Serializer {
     private final Set<Type> rs = new HashSet<>();
     private static final ThreadLocal<Fury> TL = new ThreadLocal<>();
 
-    public FurySerialize(List<Type> clz) {
-        if (clz == null) {
-            return;
-        }
+    public FurySerialize() {}
+
+    @Override
+    public void registerClz(List<Type> clz) {
+        if (clz == null || clz.isEmpty()) {return;}
         rs.addAll(clz);
     }
 
@@ -48,9 +47,7 @@ public class FurySerialize implements Serializer {
     }
 
     private void register(Fury fury, Set<Type> rs) {
-        if (rs == null || rs.isEmpty()) {
-            return;
-        }
+        if (rs == null || rs.isEmpty()) {return;}
         for (Type cls : rs) {
             fury.register((Class)cls);
         }

@@ -3,6 +3,7 @@ package com.vraft.facade.system;
 import com.vraft.facade.actor.ActorService;
 import com.vraft.facade.config.ConfigServer;
 import com.vraft.facade.rpc.RpcManager;
+import com.vraft.facade.serializer.SerializerMgr;
 import com.vraft.facade.timer.TimerService;
 import com.vraft.facade.uid.UidService;
 import lombok.Data;
@@ -18,4 +19,5 @@ public class SystemCtx {
     private TimerService timerService;
     private ActorService actorService;
     private ConfigServer configServer;
+    private SerializerMgr serializerMgr;
 }
