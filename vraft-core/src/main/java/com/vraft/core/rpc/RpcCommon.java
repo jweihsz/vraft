@@ -131,6 +131,11 @@ public class RpcCommon {
         return (InetSocketAddress)ch.remoteAddress();
     }
 
+    public static String remoteAddressStr(Channel ch) {
+        InetSocketAddress sad = RpcCommon.remoteAddress(ch);
+        return sad.getHostString() + ":" + sad.getPort();
+    }
+
     public static IdleStateHandler newIdleHandler(int idle) {
         return new IdleStateHandler(0, 0, idle);
     }

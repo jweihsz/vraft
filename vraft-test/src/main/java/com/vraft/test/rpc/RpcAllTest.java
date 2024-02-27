@@ -61,8 +61,8 @@ public class RpcAllTest {
 
         final String serverIp = String.join(":",
             node.getRpcHost(), String.valueOf(node.getRpcPort()));
-        Object obj = rpcClient.doConnect(serverIp);
-        logger.info("client connect {} {}", serverIp, obj != null);
+        long userId = rpcClient.doConnect(serverIp);
+        logger.info("client connect {} {}", serverIp, userId);
         ct.await();
     }
 }

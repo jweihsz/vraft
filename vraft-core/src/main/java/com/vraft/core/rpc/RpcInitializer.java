@@ -140,9 +140,6 @@ public class RpcInitializer {
             try {
                 InetSocketAddress sad = RpcCommon.remoteAddress(ctx.channel());
                 logger.info("rpc client active:{}", sad);
-                UidService uid = sysCtx.getUidService();
-                RpcManager rpcMgr = sysCtx.getRpcManager();
-                rpcMgr.addChannel(uid.genUserId(), ctx.channel());
             } catch (Exception ex) {
                 logger.error("rpc client active error:{}", ex.getMessage());
                 ex.printStackTrace();

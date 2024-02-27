@@ -48,16 +48,12 @@ public class FurySerialize implements Serializer {
 
     private void register(Fury fury, Set<Type> rs) {
         if (rs == null || rs.isEmpty()) {return;}
-        for (Type cls : rs) {
-            fury.register((Class)cls);
-        }
+        for (Type cls : rs) {fury.register((Class)cls);}
     }
 
     private Fury getFury() {
         Fury fury = TL.get();
-        if (fury != null) {
-            return fury;
-        }
+        if (fury != null) {return fury;}
         FuryBuilder fb = Fury.builder();
         fb.withLanguage(Language.JAVA);
         fb.requireClassRegistration(true);

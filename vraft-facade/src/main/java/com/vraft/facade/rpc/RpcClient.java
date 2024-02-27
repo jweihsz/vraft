@@ -9,7 +9,7 @@ import com.vraft.facade.common.LifeCycle;
  **/
 public interface RpcClient extends LifeCycle {
 
-    Object doConnect(String host) throws Exception;
+    long doConnect(String host) throws Exception;
 
     boolean oneWay(long userId, byte biz, String uid, byte[] header,
         byte[] body) throws Exception;

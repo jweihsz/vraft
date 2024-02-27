@@ -19,13 +19,20 @@ public class RpcManagerImpl implements RpcManager {
     private final static Logger logger = LogManager.getLogger(RpcManagerImpl.class);
 
     private final SystemCtx sysCtx;
+    private final Map<String, Long> address;
     private final Map<Long, Channel> connects;
     private final Map<ByteBuf, RpcProcessor> processor;
 
     public RpcManagerImpl(SystemCtx sysCtx) {
         this.sysCtx = sysCtx;
+        this.address = new ConcurrentHashMap<>();
         this.connects = new ConcurrentHashMap<>();
         this.processor = new ConcurrentHashMap<>();
+    }
+
+    @Override
+    public long getUserId(String host) {
+        return address.getOrDefault(host, -1L);
     }
 
     @Override
@@ -43,6 +50,7 @@ public class RpcManagerImpl implements RpcManager {
     @Override
     public void removeChannel(long userId) {
         connects.remove(userId);
+        address.remove(userId);
     }
 
     @Override
@@ -51,6 +59,7 @@ public class RpcManagerImpl implements RpcManager {
         final Channel ch = (Channel)channel;
         long userId = ch.attr(RpcCommon.CH_KEY).get();
         connects.remove(userId);
+        address.remove(userId);
     }
 
     @Override
@@ -61,6 +70,7 @@ public class RpcManagerImpl implements RpcManager {
         if (old != null) {old.close();}
         ch.attr(RpcCommon.CH_KEY).set(userId);
         ch.attr(RpcCommon.CH_PEND).set(new ConcurrentHashMap<>());
+        address.put(RpcCommon.remoteAddressStr(ch), userId);
     }
 
     @Override

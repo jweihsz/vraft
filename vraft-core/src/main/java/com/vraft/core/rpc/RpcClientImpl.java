@@ -6,8 +6,11 @@ import com.vraft.core.rpc.RpcInitializer.ClientInitializer;
 import com.vraft.facade.common.CallBack;
 import com.vraft.facade.config.CfgRpcNode;
 import com.vraft.facade.rpc.RpcClient;
+import com.vraft.facade.rpc.RpcManager;
 import com.vraft.facade.system.SystemCtx;
+import com.vraft.facade.uid.UidService;
 import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
@@ -40,10 +43,19 @@ public class RpcClientImpl implements RpcClient {
     public void shutdown() {}
 
     @Override
-    public Object doConnect(String host) throws Exception {
+    public long doConnect(String host) throws Exception {
+        RpcManager rpcMgr = sysCtx.getRpcManager();
+        long userId = rpcMgr.getUserId(host);
+        if (userId > 0) {return userId;}
         InetSocketAddress a = RpcCommon.parser(host);
         final ChannelFuture future = bs.connect(a);
-        return future.awaitUninterruptibly(3000) ? future.channel() : null;
+        Channel ch = future.awaitUninterruptibly(3000)
+            ? future.channel() : null;
+        if (ch == null) {return -1L;}
+        UidService uid = sysCtx.getUidService();
+        userId = uid.genUserId();
+        rpcMgr.addChannel(userId, ch);
+        return userId;
     }
 
     @Override
@@ -76,4 +88,5 @@ public class RpcClientImpl implements RpcClient {
         b.handler(new ClientInitializer(sysCtx));
         return b;
     }
+
 }

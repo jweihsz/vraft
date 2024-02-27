@@ -8,6 +8,10 @@ import com.vraft.facade.common.LifeCycle;
  **/
 public interface RpcManager extends LifeCycle {
 
+    long getUserId(Object channel);
+
+    long getUserId(String host);
+
     Object getChannel(long userId);
 
     void removeChannel(long userId);
