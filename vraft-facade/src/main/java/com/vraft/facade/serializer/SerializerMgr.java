@@ -11,4 +11,6 @@ public interface SerializerMgr {
     Serializer newFury();
 
     Serializer newHessian();
+
+    Serializer get(SerializerEnum type);
 }

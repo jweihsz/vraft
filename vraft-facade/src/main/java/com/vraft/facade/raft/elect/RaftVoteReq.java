@@ -14,6 +14,6 @@ public class RaftVoteReq {
     private long curTerm;
     private long lastTerm;
     private long lastLogId;
-    private String sourceId;
+    private String srcIp;
 }
 

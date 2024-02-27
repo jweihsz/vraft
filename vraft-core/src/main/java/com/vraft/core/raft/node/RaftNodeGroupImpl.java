@@ -43,4 +43,7 @@ public class RaftNodeGroupImpl implements RaftNodeGroup {
         return b.getOrDefault(nodeId, null);
     }
 
+    @Override
+    public Map<Long, Map<Long, RaftNodeMate>> getAll() {return maps;}
+
 }

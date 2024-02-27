@@ -10,6 +10,6 @@ import lombok.Data;
 public class RaftNodeMate {
     private long groupId;
     private long nodeId;
-    private String sourceId;
+    private String srcIp;
     private RaftNodeRole role;
 }
