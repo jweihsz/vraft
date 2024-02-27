@@ -29,6 +29,13 @@ public class RpcManagerImpl implements RpcManager {
     }
 
     @Override
+    public long getUserId(Object channel) {
+        if (!(channel instanceof Channel)) {return -1L;}
+        final Channel ch = (Channel)channel;
+        return ch.attr(RpcCommon.CH_KEY).get();
+    }
+
+    @Override
     public Object getChannel(long userId) {
         return connects.get(userId);
     }

@@ -22,8 +22,8 @@ public class RpcClientImpl implements RpcClient {
     private final static Logger logger = LogManager.getLogger(RpcClientImpl.class);
 
     private Bootstrap bs;
-    private final CfgRpcNode cfg;
     private EventLoopGroup group;
+    private final CfgRpcNode cfg;
     private final SystemCtx sysCtx;
 
     public RpcClientImpl(SystemCtx sysCtx, CfgRpcNode cfg) {

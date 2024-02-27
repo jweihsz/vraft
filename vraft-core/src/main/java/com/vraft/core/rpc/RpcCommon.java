@@ -119,9 +119,7 @@ public class RpcCommon {
     public static InetSocketAddress parser(String address) {
         Objects.requireNonNull(address);
         String[] arr = address.split(":");
-        if (arr.length != 2) {
-            throw new RuntimeException();
-        }
+        if (arr.length != 2) {throw new RuntimeException();}
         return new InetSocketAddress(arr[0], Integer.parseInt(arr[1]));
     }
 
@@ -135,11 +133,6 @@ public class RpcCommon {
 
     public static IdleStateHandler newIdleHandler(int idle) {
         return new IdleStateHandler(0, 0, idle);
-    }
-
-    public static long getUserId(Channel ch) {
-        if (ch == null) {return -1L;}
-        return ch.attr(RpcCommon.CH_KEY).get();
     }
 
     public static ByteBuf convert(String str) {
