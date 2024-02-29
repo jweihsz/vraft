@@ -1,11 +1,11 @@
 package com.vraft.core.raft.elect;
 
 import java.util.Map;
-import java.util.Set;
 
 import com.vraft.facade.raft.elect.RaftElectService;
 import com.vraft.facade.raft.elect.RaftVoteReq;
 import com.vraft.facade.raft.elect.RaftVoteResp;
+import com.vraft.facade.raft.node.RaftNodeBase;
 import com.vraft.facade.raft.node.RaftNodeGroup;
 import com.vraft.facade.raft.node.RaftNodeMate;
 import com.vraft.facade.rpc.RpcClient;
@@ -36,33 +36,45 @@ public class RaftElectHolder implements RaftElectService {
 
     public void doVoteReq() {
         RaftNodeGroup nodeGroup = sysCtx.getNodeGroup();
-        Map<Long, Set<RaftNodeMate>> map = nodeGroup.getAll();
+        Map<Long, RaftNodeBase> map = nodeGroup.getAll();
         if (map == null || map.isEmpty()) {return;}
         map.values().forEach(this::doVoteReqGroup);
     }
 
-    private void doVoteReqGroup(Set<RaftNodeMate> group) {
-        if (group == null || group.isEmpty()) {return;}
-        group.forEach(this::doVoteReqNode);
+    private void doVoteReqGroup(RaftNodeBase nodeBase) {
+        if (nodeBase == null) {return;}
+        Map<Long, RaftNodeMate> group = nodeBase.getPeers();
+        final RaftNodeMate self = nodeBase.getSelf();
+        final RaftVoteReq req = buildVoteReq(self);
+        try {
+            sendVoteReq(req, self, group);
+        } catch (Exception ex) {ex.printStackTrace();}
     }
 
-    private void doVoteReqNode(RaftNodeMate node) {
-        try {
-            final Serializer sz = sysCtx.getSerializer();
-            final RpcClient client = sysCtx.getRpcClient();
-            long userId = client.doConnect(node.getSrcIp());
+    private void sendVoteReq(RaftVoteReq req, RaftNodeMate self,
+        Map<Long, RaftNodeMate> group) throws Exception {
+        final Serializer sz = sysCtx.getSerializer();
+        final RpcClient client = sysCtx.getRpcClient();
+        final String uid = RaftVoteReq.class.getName();
+        final byte[] body = sz.serialize(req);
+        for (RaftNodeMate entry : group.values()) {
+            if (self.getNodeId() == entry.getNodeId()) {continue;}
+            long userId = client.doConnect(entry.getSrcIp());
             if (userId < 0) {return;}
-            RaftVoteReq req = getVoteReqObj();
-            req.setCurTerm(0L);
-            req.setLastLogId(0L);
-            req.setLastTerm(0L);
-            req.setNodeId(node.getNodeId());
-            req.setGroupId(node.getGroupId());
-            req.setSrcIp(node.getSrcIp());
-            byte[] body = sz.serialize(req);
-            final String uid = RaftVoteReq.class.getName();
             client.oneWay(userId, (byte)0, uid, null, body);
-        } catch (Exception ex) {ex.printStackTrace();}
+        }
+    }
+
+    private RaftVoteReq buildVoteReq(RaftNodeMate self) {
+        RaftVoteReq req = null;
+        req = getVoteReqObj();
+        req.setCurTerm(0L);
+        req.setLastLogId(0L);
+        req.setLastTerm(0L);
+        req.setNodeId(self.getNodeId());
+        req.setGroupId(self.getGroupId());
+        req.setSrcIp(self.getSrcIp());
+        return req;
     }
 
     private RaftVoteReq getVoteReqObj() {

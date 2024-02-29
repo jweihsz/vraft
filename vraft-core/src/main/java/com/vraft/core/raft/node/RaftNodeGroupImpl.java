@@ -1,11 +1,9 @@
 package com.vraft.core.raft.node;
 
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArraySet;
 
+import com.vraft.facade.raft.node.RaftNodeBase;
 import com.vraft.facade.raft.node.RaftNodeGroup;
 import com.vraft.facade.raft.node.RaftNodeMate;
 
@@ -14,57 +12,43 @@ import com.vraft.facade.raft.node.RaftNodeMate;
  * @version 2024/2/26 15:59
  **/
 public class RaftNodeGroupImpl implements RaftNodeGroup {
-    private final Map<Long, Set<RaftNodeMate>> maps;
+    private final Map<Long, RaftNodeBase> maps;
 
     public RaftNodeGroupImpl() {
         this.maps = new ConcurrentHashMap<>();
     }
 
     @Override
-    public void add(long groupId, long nodeId, RaftNodeMate mate) {
-        Set<RaftNodeMate> n = null, old = null;
-        Set<RaftNodeMate> b = maps.get(groupId);
-        if (b == null) {
-            n = new CopyOnWriteArraySet<>();
-            old = maps.put(groupId, n);
-            b = old != null ? old : n;
-        }
-        b.add(mate);
+    public boolean newGroup(long groupId, long nodeId) {
+        RaftNodeBase n = null, old = null;
+        RaftNodeBase b = maps.get(groupId);
+        if (b != null) {return true;}
+        n = new RaftNodeBaseImpl(groupId, nodeId);
+        old = maps.putIfAbsent(groupId, n);
+        return old == null;
+    }
+
+    @Override
+    public boolean add(long groupId, long nodeId, RaftNodeMate mate) {
+        RaftNodeBase b = maps.get(groupId);
+        if (b == null) {return false;}
+        return b.addPeer(nodeId, mate) == null;
     }
 
     @Override
     public RaftNodeMate remove(long groupId, long nodeId) {
-        Set<RaftNodeMate> b = maps.get(groupId);
-        if (b == null) { return null;}
-        RaftNodeMate node = null;
-        Iterator<RaftNodeMate> it = b.iterator();
-        while (it.hasNext()) {
-            node = it.next();
-            if (node.getNodeId() == nodeId
-                && node.getGroupId() == groupId) {
-                it.remove();
-                return node;
-            }
-        }
-        return null;
+        RaftNodeBase b = maps.get(groupId);
+        if (b == null) {return null;}
+        return b.removePeer(nodeId);
     }
 
     @Override
     public RaftNodeMate get(long groupId, long nodeId) {
-        Set<RaftNodeMate> b = maps.get(groupId);
-        if (b == null) { return null;}
-        RaftNodeMate node = null;
-        for (RaftNodeMate raftNodeMate : b) {
-            node = raftNodeMate;
-            if (node.getNodeId() == nodeId
-                && node.getGroupId() == groupId) {
-                return node;
-            }
-        }
-        return null;
+        RaftNodeBase b = maps.get(groupId);
+        return b == null ? null : b.getPeer(nodeId);
     }
 
     @Override
-    public Map<Long, Set<RaftNodeMate>> getAll() {return maps;}
+    public Map<Long, RaftNodeBase> getAll() {return maps;}
 
 }

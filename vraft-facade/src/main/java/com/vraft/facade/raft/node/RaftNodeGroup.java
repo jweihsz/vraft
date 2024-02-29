@@ -1,7 +1,6 @@
 package com.vraft.facade.raft.node;
 
 import java.util.Map;
-import java.util.Set;
 
 /**
  * @author jweihsz
@@ -9,12 +8,14 @@ import java.util.Set;
  **/
 public interface RaftNodeGroup {
 
-    Map<Long, Set<RaftNodeMate>> getAll();
+    Map<Long, RaftNodeBase> getAll();
+
+    boolean newGroup(long groupId, long nodeId);
 
     RaftNodeMate get(long groupId, long nodeId);
 
     RaftNodeMate remove(long groupId, long nodeId);
 
-    void add(long groupId, long nodeId, RaftNodeMate mate);
+    boolean add(long groupId, long nodeId, RaftNodeMate mate);
 
 }

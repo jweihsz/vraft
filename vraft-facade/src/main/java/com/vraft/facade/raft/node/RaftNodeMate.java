@@ -15,6 +15,13 @@ public class RaftNodeMate {
     private String srcIp;
     private RaftNodeRole role;
 
+    public RaftNodeMate() {}
+
+    public RaftNodeMate(long groupId, long nodeId) {
+        this.groupId = groupId;
+        this.nodeId = nodeId;
+    }
+    
     @Override
     public boolean equals(Object o) {
         if (this == o) {return true;}
