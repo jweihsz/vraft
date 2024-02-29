@@ -101,17 +101,18 @@ public class TimerWheel {
     }
 
     private long waitNextTick(long deadline) {
-        long curGmt = System.nanoTime() - startTime;
-        long sleepMs = (deadline - curGmt + 999999) / 1000000;
-        if (sleepMs <= 0) {
-            return curGmt == Long.MIN_VALUE ? -Long.MAX_VALUE : curGmt;
+        for (; ; ) {
+            long curGmt = System.nanoTime() - startTime;
+            long sleepMs = (deadline - curGmt + 999999) / 1000000;
+            if (sleepMs <= 0) {
+                return curGmt == Long.MIN_VALUE ? -Long.MAX_VALUE : curGmt;
+            }
+            if (PlatformDependent.isWindows()) {
+                sleepMs = sleepMs / 10 * 10;
+                sleepMs = sleepMs == 0 ? 1 : sleepMs;
+            }
+            OtherUtil.sleep(sleepMs);
         }
-        if (PlatformDependent.isWindows()) {
-            sleepMs = sleepMs / 10 * 10;
-            sleepMs = sleepMs == 0 ? 1 : sleepMs;
-        }
-        OtherUtil.sleep(sleepMs);
-        return curGmt;
     }
 
     private void collectUnProcess() {
