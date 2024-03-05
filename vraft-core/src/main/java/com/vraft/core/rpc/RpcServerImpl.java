@@ -2,7 +2,7 @@ package com.vraft.core.rpc;
 
 import com.vraft.core.rpc.RpcInitializer.ServerInitializer;
 import com.vraft.facade.common.CallBack;
-import com.vraft.facade.config.CfgRpcNode;
+import com.vraft.facade.config.RpcNodeCfg;
 import com.vraft.facade.rpc.RpcServer;
 import com.vraft.facade.system.SystemCtx;
 import io.netty.bootstrap.ServerBootstrap;
@@ -20,12 +20,12 @@ public class RpcServerImpl implements RpcServer {
     private final static Logger logger = LogManager.getLogger(RpcServerImpl.class);
 
     private Channel channel;
-    private final CfgRpcNode cfg;
+    private final RpcNodeCfg cfg;
     private final SystemCtx sysCtx;
     private final EventLoopGroup boss;
     private final EventLoopGroup worker;
 
-    public RpcServerImpl(SystemCtx sysCtx, CfgRpcNode cfg) {
+    public RpcServerImpl(SystemCtx sysCtx, RpcNodeCfg cfg) {
         this.cfg = cfg;
         this.sysCtx = sysCtx;
         this.boss = RpcCommon.BOSS_GROUP;
@@ -65,7 +65,7 @@ public class RpcServerImpl implements RpcServer {
             msgId, uid, header, body);
     }
 
-    private Channel newTcpServer(CfgRpcNode cfg) throws Exception {
+    private Channel newTcpServer(RpcNodeCfg cfg) throws Exception {
         final ServerBootstrap b = new ServerBootstrap();
         setOpts(b, cfg);
         b.group(boss, worker);
@@ -74,7 +74,7 @@ public class RpcServerImpl implements RpcServer {
         return b.bind(cfg.getRpcHost(), cfg.getRpcPort()).sync().channel();
     }
 
-    private void setOpts(ServerBootstrap b, CfgRpcNode cfg) {
+    private void setOpts(ServerBootstrap b, RpcNodeCfg cfg) {
         b.option(ChannelOption.SO_REUSEADDR, Boolean.TRUE);
         b.childOption(ChannelOption.TCP_NODELAY, Boolean.TRUE);
         b.childOption(ChannelOption.SO_KEEPALIVE, Boolean.TRUE);

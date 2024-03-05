@@ -32,7 +32,13 @@ public class CfgParserTest {
     @Test
     public void testLoadRpcNode() throws Exception {
         configServer.startup();
-        logger.info("rpc node config :{}", configServer.getCfgRpcNode());
+        logger.info("rpc node config :{}", configServer.getRpcNodeCfg());
+    }
+
+    @Test
+    public void testLoadRaftNode() throws Exception {
+        configServer.startup();
+        logger.info("raft node config :{}", configServer.getRaftNodeCfg());
     }
 
 }

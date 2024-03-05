@@ -10,6 +10,8 @@ public interface ConfigServer extends LifeCycle {
 
     default String getCfgFile() {return null;}
 
-    default CfgRpcNode getCfgRpcNode() {return null;}
+    default RpcNodeCfg getRpcNodeCfg() {return null;}
+
+    default RaftNodeCfg getRaftNodeCfg() {return null;}
 
 }

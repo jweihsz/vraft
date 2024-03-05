@@ -3,8 +3,9 @@ package com.vraft.core.config;
 import java.util.Properties;
 
 import com.vraft.core.utils.OtherUtil;
-import com.vraft.facade.config.CfgRpcNode;
 import com.vraft.facade.config.ConfigServer;
+import com.vraft.facade.config.RaftNodeCfg;
+import com.vraft.facade.config.RpcNodeCfg;
 import com.vraft.facade.system.SystemCtx;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -16,7 +17,8 @@ import org.apache.logging.log4j.Logger;
 public class ConfigHolder implements ConfigServer {
     private final static Logger logger = LogManager.getLogger(ConfigHolder.class);
 
-    private CfgRpcNode cfgRpcNode;
+    private RpcNodeCfg rpcNodeCfg;
+    private RaftNodeCfg raftNodeCfg;
     private final SystemCtx sysCtx;
 
     public ConfigHolder(SystemCtx sysCtx) {
@@ -32,13 +34,18 @@ public class ConfigHolder implements ConfigServer {
     }
 
     @Override
-    public CfgRpcNode getCfgRpcNode() {
-        return cfgRpcNode;
+    public RpcNodeCfg getRpcNodeCfg() {
+        return rpcNodeCfg;
+    }
+
+    @Override
+    public RaftNodeCfg getRaftNodeCfg() {
+        return raftNodeCfg;
     }
 
     @Override
     public String getCfgFile() {
-        final String flag = "raft.env";
+        final String flag = "vraft.env";
         String env = System.getProperty(flag);
         if (env == null || env.isEmpty()) {
             env = System.getenv(flag);
@@ -51,8 +58,12 @@ public class ConfigHolder implements ConfigServer {
 
     private void loadSysCfg() throws Exception {
         Properties props = parseCfg(getCfgFile());
-        cfgRpcNode = new CfgRpcNode();
-        OtherUtil.props2Obj(props, cfgRpcNode);
+        rpcNodeCfg = new RpcNodeCfg();
+        OtherUtil.props2Obj(props, rpcNodeCfg);
+
+        raftNodeCfg = new RaftNodeCfg();
+        OtherUtil.props2Obj(props, raftNodeCfg);
+       
     }
 
     private Properties parseCfg(String path) throws Exception {

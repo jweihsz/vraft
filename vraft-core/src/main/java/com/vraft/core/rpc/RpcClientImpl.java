@@ -4,7 +4,7 @@ import java.net.InetSocketAddress;
 
 import com.vraft.core.rpc.RpcInitializer.ClientInitializer;
 import com.vraft.facade.common.CallBack;
-import com.vraft.facade.config.CfgRpcNode;
+import com.vraft.facade.config.RpcNodeCfg;
 import com.vraft.facade.rpc.RpcClient;
 import com.vraft.facade.rpc.RpcManager;
 import com.vraft.facade.system.SystemCtx;
@@ -26,10 +26,10 @@ public class RpcClientImpl implements RpcClient {
 
     private Bootstrap bs;
     private EventLoopGroup group;
-    private final CfgRpcNode cfg;
+    private final RpcNodeCfg cfg;
     private final SystemCtx sysCtx;
 
-    public RpcClientImpl(SystemCtx sysCtx, CfgRpcNode cfg) {
+    public RpcClientImpl(SystemCtx sysCtx, RpcNodeCfg cfg) {
         this.cfg = cfg;
         this.sysCtx = sysCtx;
     }
@@ -78,7 +78,7 @@ public class RpcClientImpl implements RpcClient {
             msgId, uid, header, body);
     }
 
-    private Bootstrap newTcpClient(CfgRpcNode cfg) throws Exception {
+    private Bootstrap newTcpClient(RpcNodeCfg cfg) throws Exception {
         final Bootstrap b = new Bootstrap();
         group = RpcCommon.WORKER_GROUP;
         b.group(group);

@@ -7,7 +7,7 @@ import lombok.Data;
  * @version 2024/2/22 18:08
  **/
 @Data
-public class CfgRpcNode {
+public class RpcNodeCfg {
     private int rpcPort;
     private String rpcHost;
     private int rpcRcvBufSize;

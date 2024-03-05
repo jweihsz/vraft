@@ -7,8 +7,8 @@ import com.vraft.core.rpc.RpcClientImpl;
 import com.vraft.core.rpc.RpcManagerImpl;
 import com.vraft.core.rpc.RpcServerImpl;
 import com.vraft.core.uid.UidHolder;
-import com.vraft.facade.config.CfgRpcNode;
 import com.vraft.facade.config.ConfigServer;
+import com.vraft.facade.config.RpcNodeCfg;
 import com.vraft.facade.rpc.RpcClient;
 import com.vraft.facade.rpc.RpcManager;
 import com.vraft.facade.rpc.RpcServer;
@@ -51,7 +51,7 @@ public class RpcAllTest {
         CountDownLatch ct = new CountDownLatch(1);
         ConfigServer cfg = sysCtx.getConfigServer();
 
-        final CfgRpcNode node = cfg.getCfgRpcNode();
+        final RpcNodeCfg node = cfg.getRpcNodeCfg();
 
         RpcServer rpcServer = new RpcServerImpl(sysCtx, node);
         rpcServer.startup();

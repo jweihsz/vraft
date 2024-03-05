@@ -34,7 +34,7 @@ public class RpcClientTest {
     public void testRpcClientInit() throws Exception {
         CountDownLatch ct = new CountDownLatch(1);
         ConfigServer cfg = sysCtx.getConfigServer();
-        RpcClient rpcClient = new RpcClientImpl(sysCtx, cfg.getCfgRpcNode());
+        RpcClient rpcClient = new RpcClientImpl(sysCtx, cfg.getRpcNodeCfg());
         rpcClient.startup();
         ct.await();
     }
