@@ -10,6 +10,8 @@ public interface RaftNodeBase {
 
     RaftNodeMate getSelf();
 
+    void setLeaderId(long leaderId);
+
     RaftNodeMate getPeer(long nodeId);
 
     Map<Long, RaftNodeMate> getPeers();

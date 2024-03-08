@@ -12,6 +12,7 @@ import com.vraft.facade.raft.node.RaftNodeMate;
  **/
 public class RaftNodeBaseImpl implements RaftNodeBase {
 
+    private long leaderId;
     private final long groupId, nodeId;
     private final Map<Long, RaftNodeMate> peers;
 
@@ -20,6 +21,11 @@ public class RaftNodeBaseImpl implements RaftNodeBase {
         this.nodeId = nodeId;
         this.peers = new ConcurrentHashMap<>();
         this.peers.put(nodeId, new RaftNodeMate(groupId, nodeId));
+    }
+
+    @Override
+    public void setLeaderId(long leaderId) {
+        this.leaderId = leaderId;
     }
 
     @Override

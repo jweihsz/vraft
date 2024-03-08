@@ -10,4 +10,5 @@ public enum RaftNodeRole {
     FOLLOWER,
     LEARNER,
     QUITTER,
+    UNKNOW,
 }
