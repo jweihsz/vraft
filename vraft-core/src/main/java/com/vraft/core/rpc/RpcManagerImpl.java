@@ -49,8 +49,9 @@ public class RpcManagerImpl implements RpcManager {
 
     @Override
     public void removeChannel(long userId) {
+        final Channel ch = connects.get(userId);
+        address.remove(RpcCommon.remoteAddressStr(ch));
         connects.remove(userId);
-        address.remove(userId);
     }
 
     @Override
@@ -59,7 +60,7 @@ public class RpcManagerImpl implements RpcManager {
         final Channel ch = (Channel)channel;
         long userId = ch.attr(RpcCommon.CH_KEY).get();
         connects.remove(userId);
-        address.remove(userId);
+        address.remove(RpcCommon.remoteAddressStr(ch));
     }
 
     @Override
