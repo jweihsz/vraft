@@ -8,7 +8,7 @@ import com.vraft.core.rpc.RpcManagerImpl;
 import com.vraft.core.rpc.RpcServerImpl;
 import com.vraft.core.uid.UidHolder;
 import com.vraft.facade.config.ConfigServer;
-import com.vraft.facade.config.RpcNodeCfg;
+import com.vraft.facade.config.RpcServerCfg;
 import com.vraft.facade.rpc.RpcClient;
 import com.vraft.facade.rpc.RpcManager;
 import com.vraft.facade.rpc.RpcServer;
@@ -36,31 +36,31 @@ public class RpcAllTest {
 
         configServer = new ConfigHolder(sysCtx);
         configServer.startup();
-        sysCtx.setCfgServer(configServer);
+        sysCtx.setCfgSvs(configServer);
 
         UidService uidService = new UidHolder();
-        sysCtx.setUidService(uidService);
+        sysCtx.setUidSvs(uidService);
 
         rpcManager = new RpcManagerImpl(sysCtx);
         rpcManager.startup();
-        sysCtx.setRpcManager(rpcManager);
+        sysCtx.setRpcMgr(rpcManager);
     }
 
     @Test
     public void testRpcConnectServerInit() throws Exception {
         CountDownLatch ct = new CountDownLatch(1);
-        ConfigServer cfg = sysCtx.getCfgServer();
+        ConfigServer cfg = sysCtx.getCfgSvs();
 
-        final RpcNodeCfg node = cfg.getRpcNodeCfg();
+        final RpcServerCfg node = cfg.getRpcServerCfg();
 
         RpcServer rpcServer = new RpcServerImpl(sysCtx, node);
         rpcServer.startup();
 
-        RpcClient rpcClient = new RpcClientImpl(sysCtx, node);
+        RpcClient rpcClient = new RpcClientImpl(sysCtx, cfg.getRpcClientCfg());
         rpcClient.startup();
 
         final String serverIp = String.join(":",
-            node.getRpcHost(), String.valueOf(node.getRpcPort()));
+            node.getRpcSrvHost(), String.valueOf(node.getRpcSrvPort()));
         long userId = rpcClient.doConnect(serverIp);
         logger.info("client connect {} {}", serverIp, userId);
         ct.await();

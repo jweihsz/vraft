@@ -32,7 +32,7 @@ public class CfgParserTest {
     @Test
     public void testLoadRpcNode() throws Exception {
         configServer.startup();
-        logger.info("rpc node config :{}", configServer.getRpcNodeCfg());
+        logger.info("rpc node config :{}", configServer.getRpcServerCfg());
     }
 
     @Test

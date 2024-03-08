@@ -27,14 +27,14 @@ public class RpcClientTest {
         sysCtx = new SystemCtx();
         configServer = new ConfigHolder(sysCtx);
         configServer.startup();
-        sysCtx.setCfgServer(configServer);
+        sysCtx.setCfgSvs(configServer);
     }
 
     @Test
     public void testRpcClientInit() throws Exception {
         CountDownLatch ct = new CountDownLatch(1);
-        ConfigServer cfg = sysCtx.getCfgServer();
-        RpcClient rpcClient = new RpcClientImpl(sysCtx, cfg.getRpcNodeCfg());
+        ConfigServer cfg = sysCtx.getCfgSvs();
+        RpcClient rpcClient = new RpcClientImpl(sysCtx, cfg.getRpcClientCfg());
         rpcClient.startup();
         ct.await();
     }

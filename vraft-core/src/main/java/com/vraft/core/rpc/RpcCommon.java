@@ -46,10 +46,12 @@ import io.netty.util.internal.ThreadLocalRandom;
 public class RpcCommon {
     private RpcCommon() {}
 
-    /* version(byte)|biz(byte)|type(byte)|seq(long)|uid-size(int)|
-     * header-size(int)|body-size(int)|uid-content(bytes)|
-     * header-content(bytes)|body-content(bytes)
-     */
+    //client connect time out
+    public static int CONN_TIMEOUT = 3000;
+
+    //version(byte)|biz(byte)|type(byte)|seq(long)|uid-size(int)
+    // |header-size(int)|body-size(int)|uid-content(bytes)
+    // |header-content(bytes)|body-content(bytes)
     public static int RPC_MATE_SIZE = 1 + 1 + 1 + 8 + 4 + 4 + 4;
     public static final byte[] EMPTY_BUFFER = new byte[0];
 
@@ -211,7 +213,7 @@ public class RpcCommon {
     public static boolean dispatchRpc(SystemCtx ctx, long userId,
         byte biz, byte type, long msgId, String uid, byte[] header,
         byte[] body, long timeout, CallBack cb) throws Exception {
-        ActorService actor = ctx.getActorService();
+        final ActorService actor = ctx.getActorSvs();
         final RpcCmd cmd = buildBaseCmd(userId, biz, type,
             msgId, uid, body, header, cb, timeout);
         if (actor.dispatchWriteChMsg(userId, cmd)) {return true;}
@@ -221,7 +223,7 @@ public class RpcCommon {
 
     public static boolean dispatchOneWay(SystemCtx ctx, long userId,
         byte biz, String uid, byte[] header, byte[] body) throws Exception {
-        final UidService genId = ctx.getUidService();
+        final UidService genId = ctx.getUidSvs();
         return dispatchRpc(ctx, userId, RpcConsts.RPC_ONE_WAY, biz,
             genId.genMsgId(), uid, header, body, -1L, null);
     }
@@ -229,7 +231,7 @@ public class RpcCommon {
     public static boolean dispatchTwoWay(SystemCtx ctx, long userId,
         byte biz, String uid, byte[] header, byte[] body, long timeout,
         CallBack cb) throws Exception {
-        final UidService genId = ctx.getUidService();
+        final UidService genId = ctx.getUidSvs();
         return dispatchRpc(ctx, userId, biz, RpcConsts.RPC_TWO_WAY,
             genId.genMsgId(), uid, header, body, timeout, cb);
     }
@@ -244,7 +246,7 @@ public class RpcCommon {
     public static boolean invokeBatch(SystemCtx ctx, long userId,
         Consumer<Object> apply, List<RpcCmd> nodes) {
         CompositeByteBuf cbf = null;
-        final RpcManager mgr = ctx.getRpcManager();
+        final RpcManager mgr = ctx.getRpcMgr();
         Channel ch = (Channel)mgr.getChannel(userId);
         if (ch == null || !ch.isWritable()) {return false;}
         if (nodes == null || nodes.isEmpty()) {return false;}
@@ -307,8 +309,8 @@ public class RpcCommon {
         Consumer<Object> apply, RpcCmd cmd) {
         ByteBuf bf = buildBasePkg(cmd.getType(), cmd.getMsgId(),
             cmd.getUid(), cmd.getHeader(), cmd.getBody());
-        final RpcManager mgr = ctx.getRpcManager();
-        TimerService timer = ctx.getTimerService();
+        final RpcManager mgr = ctx.getRpcMgr();
+        TimerService timer = ctx.getTimerSvs();
         Object task = timer.addTimeout(apply, cmd, cmd.getTimeout());
         if (task == null) {
             bf.release();

@@ -5,7 +5,8 @@ import java.util.Properties;
 import com.vraft.core.utils.OtherUtil;
 import com.vraft.facade.config.ConfigServer;
 import com.vraft.facade.config.RaftNodeCfg;
-import com.vraft.facade.config.RpcNodeCfg;
+import com.vraft.facade.config.RpcClientCfg;
+import com.vraft.facade.config.RpcServerCfg;
 import com.vraft.facade.system.SystemCtx;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -17,9 +18,10 @@ import org.apache.logging.log4j.Logger;
 public class ConfigHolder implements ConfigServer {
     private final static Logger logger = LogManager.getLogger(ConfigHolder.class);
 
-    private RpcNodeCfg rpcNodeCfg;
-    private RaftNodeCfg raftNodeCfg;
     private final SystemCtx sysCtx;
+    private RaftNodeCfg raftNodeCfg;
+    private RpcServerCfg rpcServerCfg;
+    private RpcClientCfg rpcClientCfg;
 
     public ConfigHolder(SystemCtx sysCtx) {
         this.sysCtx = sysCtx;
@@ -34,13 +36,18 @@ public class ConfigHolder implements ConfigServer {
     }
 
     @Override
-    public RpcNodeCfg getRpcNodeCfg() {
-        return rpcNodeCfg;
+    public RaftNodeCfg getRaftNodeCfg() {
+        return raftNodeCfg;
     }
 
     @Override
-    public RaftNodeCfg getRaftNodeCfg() {
-        return raftNodeCfg;
+    public RpcServerCfg getRpcServerCfg() {
+        return rpcServerCfg;
+    }
+
+    @Override
+    public RpcClientCfg getRpcClientCfg() {
+        return rpcClientCfg;
     }
 
     @Override
@@ -58,12 +65,14 @@ public class ConfigHolder implements ConfigServer {
 
     private void loadSysCfg() throws Exception {
         Properties props = parseCfg(getCfgFile());
-        rpcNodeCfg = new RpcNodeCfg();
-        OtherUtil.props2Obj(props, rpcNodeCfg);
+        rpcServerCfg = new RpcServerCfg();
+        OtherUtil.props2Obj(props, rpcServerCfg);
+
+        rpcClientCfg = new RpcClientCfg();
+        OtherUtil.props2Obj(props, rpcClientCfg);
 
         raftNodeCfg = new RaftNodeCfg();
         OtherUtil.props2Obj(props, raftNodeCfg);
-       
     }
 
     private Properties parseCfg(String path) throws Exception {

@@ -79,8 +79,8 @@ public class RpcInitializer {
             try {
                 InetSocketAddress sad = RpcCommon.remoteAddress(ctx.channel());
                 logger.info("rpc server active:{}", sad);
-                UidService uid = sysCtx.getUidService();
-                RpcManager rpcMgr = sysCtx.getRpcManager();
+                UidService uid = sysCtx.getUidSvs();
+                RpcManager rpcMgr = sysCtx.getRpcMgr();
                 rpcMgr.addChannel(uid.genUserId(), ctx.channel());
             } catch (Exception ex) {
                 logger.error("rpc server active error:{}", ex.getMessage());
@@ -93,7 +93,7 @@ public class RpcInitializer {
             try {
                 InetSocketAddress sad = RpcCommon.remoteAddress(ctx.channel());
                 logger.info("rpc server inactive:{}", sad);
-                RpcManager rpcMgr = sysCtx.getRpcManager();
+                RpcManager rpcMgr = sysCtx.getRpcMgr();
                 rpcMgr.removeChannel(ctx.channel());
             } catch (Exception ex) {
                 logger.error("rpc server inactive error:{}", ex.getMessage());
@@ -151,7 +151,7 @@ public class RpcInitializer {
             try {
                 InetSocketAddress sad = RpcCommon.remoteAddress(ctx.channel());
                 logger.info("rpc client inactive:{}", sad);
-                RpcManager rpcMgr = sysCtx.getRpcManager();
+                RpcManager rpcMgr = sysCtx.getRpcMgr();
                 rpcMgr.removeChannel(ctx.channel());
             } catch (Exception ex) {
                 logger.error("rpc client inactive error:{}", ex.getMessage());

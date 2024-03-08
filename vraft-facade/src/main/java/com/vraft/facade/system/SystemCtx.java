@@ -5,7 +5,7 @@ import com.vraft.facade.config.ConfigServer;
 import com.vraft.facade.raft.node.RaftNodeGroup;
 import com.vraft.facade.rpc.RpcClient;
 import com.vraft.facade.rpc.RpcManager;
-import com.vraft.facade.serializer.Serializer;
+import com.vraft.facade.rpc.RpcServer;
 import com.vraft.facade.serializer.SerializerMgr;
 import com.vraft.facade.timer.TimerService;
 import com.vraft.facade.uid.UidService;
@@ -17,13 +17,13 @@ import lombok.Data;
  **/
 @Data
 public class SystemCtx {
-    private ConfigServer cfgServer;
-    private RpcManager rpcManager;
+    private UidService uidSvs;
+    private ConfigServer cfgSvs;
+    private RpcManager rpcMgr;
+    private RpcServer rpcSrv;
     private RpcClient rpcClient;
-    private UidService uidService;
-    private RaftNodeGroup nodeGroup;
-    private TimerService timerService;
-    private ActorService actorService;
-    private Serializer serializer;
+    private TimerService timerSvs;
+    private ActorService actorSvs;
+    private RaftNodeGroup nodeGroupSrv;
     private SerializerMgr serializerMgr;
 }

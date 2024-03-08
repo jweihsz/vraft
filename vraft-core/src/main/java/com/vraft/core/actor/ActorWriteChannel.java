@@ -36,7 +36,7 @@ public class ActorWriteChannel implements ActorProcessor<RpcCmd> {
     public long actorId(long userId, ByteBuf uid) {
         Long actorId = maps.get(userId);
         if (actorId != null) {return actorId;}
-        UidService id = sysCtx.getUidService();
+        UidService id = sysCtx.getUidSvs();
         actorId = maps.put(userId, id.genActorId());
         return actorId == null ? maps.get(userId) : actorId;
     }

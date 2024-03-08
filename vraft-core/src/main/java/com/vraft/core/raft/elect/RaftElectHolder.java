@@ -10,6 +10,8 @@ import com.vraft.facade.raft.node.RaftNodeGroup;
 import com.vraft.facade.raft.node.RaftNodeMate;
 import com.vraft.facade.rpc.RpcClient;
 import com.vraft.facade.serializer.Serializer;
+import com.vraft.facade.serializer.SerializerEnum;
+import com.vraft.facade.serializer.SerializerMgr;
 import com.vraft.facade.system.SystemCtx;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -35,7 +37,7 @@ public class RaftElectHolder implements RaftElectService {
     }
 
     public void doVoteReq() {
-        RaftNodeGroup nodeGroup = sysCtx.getNodeGroup();
+        RaftNodeGroup nodeGroup = sysCtx.getNodeGroupSrv();
         Map<Long, RaftNodeBase> map = nodeGroup.getAll();
         if (map == null || map.isEmpty()) {return;}
         map.values().forEach(this::doVoteReqGroup);
@@ -53,7 +55,8 @@ public class RaftElectHolder implements RaftElectService {
 
     private void sendVoteReq(RaftVoteReq req, RaftNodeMate self,
         Map<Long, RaftNodeMate> group) throws Exception {
-        final Serializer sz = sysCtx.getSerializer();
+        final SerializerMgr szMgr = sysCtx.getSerializerMgr();
+        final Serializer sz = szMgr.get(SerializerEnum.KRYO_ID);
         final RpcClient client = sysCtx.getRpcClient();
         final String uid = RaftVoteReq.class.getName();
         final byte[] body = sz.serialize(req);

@@ -2,7 +2,7 @@ package com.vraft.core.rpc;
 
 import com.vraft.core.rpc.RpcInitializer.ServerInitializer;
 import com.vraft.facade.common.CallBack;
-import com.vraft.facade.config.RpcNodeCfg;
+import com.vraft.facade.config.RpcServerCfg;
 import com.vraft.facade.rpc.RpcServer;
 import com.vraft.facade.system.SystemCtx;
 import io.netty.bootstrap.ServerBootstrap;
@@ -20,12 +20,12 @@ public class RpcServerImpl implements RpcServer {
     private final static Logger logger = LogManager.getLogger(RpcServerImpl.class);
 
     private Channel channel;
-    private final RpcNodeCfg cfg;
+    private final RpcServerCfg cfg;
     private final SystemCtx sysCtx;
     private final EventLoopGroup boss;
     private final EventLoopGroup worker;
 
-    public RpcServerImpl(SystemCtx sysCtx, RpcNodeCfg cfg) {
+    public RpcServerImpl(SystemCtx sysCtx, RpcServerCfg cfg) {
         this.cfg = cfg;
         this.sysCtx = sysCtx;
         this.boss = RpcCommon.BOSS_GROUP;
@@ -65,20 +65,20 @@ public class RpcServerImpl implements RpcServer {
             msgId, uid, header, body);
     }
 
-    private Channel newTcpServer(RpcNodeCfg cfg) throws Exception {
+    private Channel newTcpServer(RpcServerCfg cfg) throws Exception {
         final ServerBootstrap b = new ServerBootstrap();
         setOpts(b, cfg);
         b.group(boss, worker);
         b.channel(RpcCommon.serverCls());
         b.childHandler(new ServerInitializer(sysCtx));
-        return b.bind(cfg.getRpcHost(), cfg.getRpcPort()).sync().channel();
+        return b.bind(cfg.getRpcSrvHost(), cfg.getRpcSrvPort()).sync().channel();
     }
 
-    private void setOpts(ServerBootstrap b, RpcNodeCfg cfg) {
+    private void setOpts(ServerBootstrap b, RpcServerCfg cfg) {
         b.option(ChannelOption.SO_REUSEADDR, Boolean.TRUE);
         b.childOption(ChannelOption.TCP_NODELAY, Boolean.TRUE);
         b.childOption(ChannelOption.SO_KEEPALIVE, Boolean.TRUE);
-        b.childOption(ChannelOption.SO_RCVBUF, cfg.getRpcRcvBufSize());
-        b.childOption(ChannelOption.SO_SNDBUF, cfg.getRpcSndBufSize());
+        b.childOption(ChannelOption.SO_RCVBUF, cfg.getRpcSrvRcvBufSize());
+        b.childOption(ChannelOption.SO_SNDBUF, cfg.getRpcSrvSndBufSize());
     }
 }

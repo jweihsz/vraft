@@ -22,7 +22,7 @@ public class RpcServerTest {
         sysCtx = new SystemCtx();
         configServer = new ConfigHolder(sysCtx);
         configServer.startup();
-        sysCtx.setCfgServer(configServer);
+        sysCtx.setCfgSvs(configServer);
     }
 
 }

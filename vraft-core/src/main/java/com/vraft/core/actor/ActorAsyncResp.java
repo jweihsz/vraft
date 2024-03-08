@@ -37,7 +37,7 @@ public class ActorAsyncResp implements ActorProcessor<RpcCmd> {
     }
 
     private Long[] buildActorIds(int group) {
-        UidService id = sysCtx.getUidService();
+        UidService id = sysCtx.getUidSvs();
         Long[] actors = new Long[group];
         for (int i = 0; i < group; i++) {
             actors[i] = id.genActorId();
