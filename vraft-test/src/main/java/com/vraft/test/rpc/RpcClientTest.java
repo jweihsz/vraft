@@ -27,13 +27,13 @@ public class RpcClientTest {
         sysCtx = new SystemCtx();
         configServer = new ConfigHolder(sysCtx);
         configServer.startup();
-        sysCtx.setConfigServer(configServer);
+        sysCtx.setCfgServer(configServer);
     }
 
     @Test
     public void testRpcClientInit() throws Exception {
         CountDownLatch ct = new CountDownLatch(1);
-        ConfigServer cfg = sysCtx.getConfigServer();
+        ConfigServer cfg = sysCtx.getCfgServer();
         RpcClient rpcClient = new RpcClientImpl(sysCtx, cfg.getRpcNodeCfg());
         rpcClient.startup();
         ct.await();

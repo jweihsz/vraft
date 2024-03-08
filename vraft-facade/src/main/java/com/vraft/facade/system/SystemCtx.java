@@ -17,13 +17,13 @@ import lombok.Data;
  **/
 @Data
 public class SystemCtx {
+    private ConfigServer cfgServer;
     private RpcManager rpcManager;
     private RpcClient rpcClient;
     private UidService uidService;
     private RaftNodeGroup nodeGroup;
     private TimerService timerService;
     private ActorService actorService;
-    private ConfigServer configServer;
     private Serializer serializer;
     private SerializerMgr serializerMgr;
 }

@@ -36,7 +36,7 @@ public class RpcAllTest {
 
         configServer = new ConfigHolder(sysCtx);
         configServer.startup();
-        sysCtx.setConfigServer(configServer);
+        sysCtx.setCfgServer(configServer);
 
         UidService uidService = new UidHolder();
         sysCtx.setUidService(uidService);
@@ -49,7 +49,7 @@ public class RpcAllTest {
     @Test
     public void testRpcConnectServerInit() throws Exception {
         CountDownLatch ct = new CountDownLatch(1);
-        ConfigServer cfg = sysCtx.getConfigServer();
+        ConfigServer cfg = sysCtx.getCfgServer();
 
         final RpcNodeCfg node = cfg.getRpcNodeCfg();
 
