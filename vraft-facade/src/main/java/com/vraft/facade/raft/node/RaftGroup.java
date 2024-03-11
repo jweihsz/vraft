@@ -12,8 +12,6 @@ public interface RaftGroup extends LifeCycle {
 
     RaftNode getSelf();
 
-    void addSelf(long nodeId);
-
     void setLeaderId(long leaderId);
 
     RaftNode getPeer(long nodeId);

@@ -17,12 +17,12 @@ public class RequireUtil {
         throw new NullPointerException(message);
     }
 
-    public static void True(boolean exp) {
+    public static void isTrue(boolean exp) {
         if (exp) {return;}
         throw new IllegalArgumentException();
     }
 
-    public static void True(boolean exp, Object msg) {
+    public static void isTrue(boolean exp, Object msg) {
         if (exp) {return;}
         throw new IllegalArgumentException(String.valueOf(msg));
     }
