@@ -4,7 +4,6 @@ import java.util.concurrent.CountDownLatch;
 
 import com.vraft.core.actor.ActorHolder;
 import com.vraft.core.config.ConfigHolder;
-import com.vraft.core.raft.node.RaftAllGroupImpl;
 import com.vraft.core.rpc.RpcClientImpl;
 import com.vraft.core.rpc.RpcManagerImpl;
 import com.vraft.core.rpc.RpcServerImpl;
@@ -15,7 +14,6 @@ import com.vraft.facade.actor.ActorService;
 import com.vraft.facade.config.ConfigServer;
 import com.vraft.facade.config.RpcClientCfg;
 import com.vraft.facade.config.RpcServerCfg;
-import com.vraft.facade.raft.node.RaftAllGroup;
 import com.vraft.facade.rpc.RpcClient;
 import com.vraft.facade.rpc.RpcManager;
 import com.vraft.facade.rpc.RpcServer;
@@ -67,9 +65,6 @@ public class Bootstrap {
         RpcServer rpcServer = new RpcServerImpl(sysCtx, srvCfg);
         rpcServer.startup();
         sysCtx.setRpcSrv(rpcServer);
-
-        RaftAllGroup nodeGroup = new RaftAllGroupImpl();
-        sysCtx.setNodeGroupSrv(nodeGroup);
 
         ActorService actorSrv = new ActorHolder(sysCtx);
         sysCtx.setActorSvs(actorSrv);

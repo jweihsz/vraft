@@ -1,5 +1,7 @@
 package com.vraft.core.rpc;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import com.vraft.core.rpc.RpcInitializer.ServerInitializer;
 import com.vraft.facade.common.CallBack;
 import com.vraft.facade.config.RpcServerCfg;
@@ -24,16 +26,19 @@ public class RpcServerImpl implements RpcServer {
     private final SystemCtx sysCtx;
     private final EventLoopGroup boss;
     private final EventLoopGroup worker;
+    private final AtomicBoolean start;
 
     public RpcServerImpl(SystemCtx sysCtx, RpcServerCfg cfg) {
         this.cfg = cfg;
         this.sysCtx = sysCtx;
         this.boss = RpcCommon.BOSS_GROUP;
         this.worker = RpcCommon.WORKER_GROUP;
+        this.start = new AtomicBoolean(false);
     }
 
     @Override
     public void startup() throws Exception {
+        if (!start.compareAndSet(false, true)) {return;}
         this.channel = newTcpServer(cfg);
         logger.info("rpc server start up:{}", channel.toString());
     }

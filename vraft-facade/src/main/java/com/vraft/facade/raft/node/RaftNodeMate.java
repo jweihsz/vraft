@@ -10,18 +10,18 @@ import lombok.Data;
  **/
 @Data
 public class RaftNodeMate {
+    private int role;
     private long groupId;
     private long nodeId;
     private String srcIp;
-    private RaftNodeRole role;
-
+    
     public RaftNodeMate() {}
 
     public RaftNodeMate(long groupId, long nodeId) {
         this.groupId = groupId;
         this.nodeId = nodeId;
     }
-    
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {return true;}
