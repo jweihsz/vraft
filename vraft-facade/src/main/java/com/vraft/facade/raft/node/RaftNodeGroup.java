@@ -4,18 +4,26 @@ import java.util.Map;
 
 /**
  * @author jweihsz
- * @version 2024/2/26 15:57
+ * @version 2024/2/29 13:59
  **/
 public interface RaftNodeGroup {
 
-    Map<Long, RaftNodeBase> getAll();
+    RaftNodeMate getSelf();
 
-    boolean newGroup(long groupId, long nodeId);
+    void addSelf(long nodeId);
 
-    RaftNodeMate get(long groupId, long nodeId);
+    void setLeaderId(long leaderId);
 
-    RaftNodeMate remove(long groupId, long nodeId);
+    RaftNodeMate getPeer(long nodeId);
 
-    boolean add(long groupId, long nodeId, RaftNodeMate mate);
+    Map<Long, RaftNodeMate> getPeers();
+
+    RaftNodeMate removePeer(long nodeId);
+
+    boolean isSelf(long groupId, long nodeId);
+
+    RaftNodeMate addPeer(long nodeId, RaftNodeMate mate);
+
+    boolean addPeerIfAbsent(long nodeId, RaftNodeMate mate);
 
 }
