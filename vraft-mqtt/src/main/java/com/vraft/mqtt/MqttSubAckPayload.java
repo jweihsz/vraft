@@ -13,8 +13,23 @@ import io.netty.util.internal.StringUtil;
  * @version 2024/3/11 21:03
  **/
 public class MqttSubAckPayload {
-    private final List<SubAck> reasonCodes;
+    private List<SubAck> reasonCodes;
     private int numberOfBytesConsumed;
+
+    public MqttSubAckPayload() {
+        this.reasonCodes = new ArrayList<>();
+    }
+
+    public void add(int... codes) {
+        for (int v : codes) {
+            SubAck a = MqttReasonCodes.SubAck.valueOf((byte)(v & 0xFF));
+            reasonCodes.add(a);
+        }
+    }
+
+    public void recycle() {
+        reasonCodes.clear();
+    }
 
     public MqttSubAckPayload(int... reasonCodes) {
         List<MqttReasonCodes.SubAck> list = new ArrayList<SubAck>(reasonCodes.length);

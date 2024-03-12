@@ -13,16 +13,26 @@ import io.netty.util.internal.StringUtil;
  **/
 public final class MqttUnsubAckPayload {
     private int numberOfBytesConsumed;
-    private final List<UnsubAck> unsubscribeReasonCodes;
+    private List<UnsubAck> unsubscribeReasonCodes;
 
     private static final MqttUnsubAckPayload EMPTY = new MqttUnsubAckPayload();
 
-    public static MqttUnsubAckPayload withEmptyDefaults(MqttUnsubAckPayload payload) {
-        if (payload == null) {
-            return EMPTY;
-        } else {
-            return payload;
+    public MqttUnsubAckPayload() {
+        this.unsubscribeReasonCodes = new ArrayList<>();
+    }
+
+    public void recycle() {
+        this.unsubscribeReasonCodes.clear();
+    }
+
+    public void add(short... codes) {
+        for (short v : codes) {
+            unsubscribeReasonCodes.add(MqttReasonCodes.UnsubAck.valueOf((byte)(v & 0xFF)));
         }
+    }
+
+    public static MqttUnsubAckPayload withEmptyDefaults(MqttUnsubAckPayload payload) {
+        return payload == null ? EMPTY : payload;
     }
 
     public MqttUnsubAckPayload(short... unsubscribeReasonCodes) {

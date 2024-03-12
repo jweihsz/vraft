@@ -23,7 +23,7 @@ public class MqttSubscribePayload {
         this.topicSubscriptions.add(subscription);
     }
 
-    public void rest(MqttTopicSubscription subscription) {
+    public void recycle() {
         this.topicSubscriptions.clear();
     }
 

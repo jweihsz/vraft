@@ -8,9 +8,21 @@ import lombok.Data;
  **/
 @Data
 public class MqttPublishVariableHeader {
-    private final String topicName;
-    private final int packetId;
-    private final MqttProperties properties;
+    private String topicName;
+    private int packetId;
+    private MqttProperties properties;
+
+    public MqttPublishVariableHeader() {
+        this.topicName = null;
+        this.packetId = 0;
+        this.properties = new MqttProperties();
+    }
+
+    public void recycle() {
+        this.topicName = null;
+        this.packetId = 0;
+        this.properties.recycle();
+    }
 
     public MqttPublishVariableHeader(String topicName, int packetId) {
         this(topicName, packetId, MqttProperties.NO_PROPERTIES);

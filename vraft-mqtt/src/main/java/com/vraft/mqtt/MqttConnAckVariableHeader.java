@@ -8,11 +8,19 @@ import lombok.Data;
  **/
 @Data
 public class MqttConnAckVariableHeader {
-    private final MqttConnectReturnCode connectReturnCode;
+    private MqttConnectReturnCode connectReturnCode;
+    
+    private boolean sessionPresent;
 
-    private final boolean sessionPresent;
+    private MqttProperties properties;
 
-    private final MqttProperties properties;
+    public MqttConnAckVariableHeader() {
+        this.properties = new MqttProperties();
+    }
+
+    public void recycle() {
+        this.properties.recycle();
+    }
 
     public MqttConnAckVariableHeader(MqttConnectReturnCode connectReturnCode,
         boolean sessionPresent) {

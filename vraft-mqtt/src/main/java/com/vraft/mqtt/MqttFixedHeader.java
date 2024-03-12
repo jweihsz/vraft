@@ -29,6 +29,12 @@ public class MqttFixedHeader {
         this.remainingLength = remainingLength;
     }
 
+    public MqttQoS qosLevel() {return qosLevel;}
+
+    public MqttMessageType messageType() {
+        return messageType;
+    }
+
     public void recycle() {
         this.isDup = false;
         this.isRetain = false;

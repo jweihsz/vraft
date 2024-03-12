@@ -8,8 +8,7 @@ import lombok.Data;
  * @version 2024/3/11 20:14
  **/
 @Data
-public class MqttConnectMessage {
-    private MqttFixedHeader mqttFixedHeader;
+public class MqttConnectMessage extends MqttBaseMessage {
     private MqttConnectVariableHeader variableHeader;
     private MqttConnectPayload payload;
     private DecoderResult decoderResult;

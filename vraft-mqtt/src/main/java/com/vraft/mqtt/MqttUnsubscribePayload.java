@@ -21,7 +21,7 @@ public class MqttUnsubscribePayload {
         this.topics.add(topic);
     }
 
-    public void reset(String topic) {
+    public void recycle() {
         this.topics.clear();
     }
 

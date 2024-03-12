@@ -3,6 +3,7 @@ package com.vraft.mqtt;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.handler.codec.DecoderResult;
+import io.netty.util.Recycler.Handle;
 import lombok.Data;
 
 /**
@@ -10,11 +11,20 @@ import lombok.Data;
  * @version 2024/3/11 20:28
  **/
 @Data
-public class MqttPublishMessage {
-    private MqttFixedHeader mqttFixedHeader;
+public class MqttPublishMessage extends MqttBaseMessage {
     private MqttPublishVariableHeader variableHeader;
     private ByteBuf payload;
     private DecoderResult decoderResult;
+    private transient Handle<MqttPublishMessage> handle;
+
+    public MqttPublishMessage(Handle<MqttPublishMessage> handle) {
+        this.handle = handle;
+        this.payload = null;
+        this.decoderResult = null;
+        this.mqttFixedHeader = new MqttFixedHeader();
+        this.variableHeader = new MqttPublishVariableHeader();
+
+    }
 
     public MqttPublishMessage(
         MqttFixedHeader mqttFixedHeader,
@@ -23,6 +33,13 @@ public class MqttPublishMessage {
         this.mqttFixedHeader = mqttFixedHeader;
         this.variableHeader = variableHeader;
         this.payload = payload;
+    }
+
+    public void recycle() {
+        this.decoderResult = null;
+        this.mqttFixedHeader.recycle();
+        this.variableHeader.recycle();
+        this.handle.recycle(this);
     }
 
     public ByteBuf payload() {

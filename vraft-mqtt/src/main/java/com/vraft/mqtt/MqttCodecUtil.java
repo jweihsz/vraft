@@ -11,7 +11,7 @@ import io.netty.util.AttributeKey;
 public class MqttCodecUtil {
     private MqttCodecUtil() { }
 
-    private static final char[] TOPIC_WILDCARDS = {'#', '+'};
+    public static final char[] TOPIC_WILDCARDS = {'#', '+'};
 
     static final AttributeKey<MqttVersion> MQTT_VERSION_KEY = AttributeKey.valueOf("NETTY_CODEC_MQTT_VERSION");
 
@@ -49,7 +49,7 @@ public class MqttCodecUtil {
         throw new IllegalArgumentException(errMsg);
     }
 
-    static MqttFixedHeader validateFixedHeader(ChannelHandlerContext ctx, MqttFixedHeader mqttFixedHeader) {
+    public static MqttFixedHeader validateFixedHeader(ChannelHandlerContext ctx, MqttFixedHeader mqttFixedHeader) {
         String errMsg = null;
         switch (mqttFixedHeader.getMessageType()) {
             case PUBREL:
@@ -70,7 +70,7 @@ public class MqttCodecUtil {
         }
     }
 
-    static MqttFixedHeader resetUnusedFields(MqttFixedHeader mqttFixedHeader) {
+    public static MqttFixedHeader resetUnusedFields(MqttFixedHeader mqttFixedHeader) {
         switch (mqttFixedHeader.getMessageType()) {
             case CONNECT:
             case CONNACK:
@@ -85,24 +85,16 @@ public class MqttCodecUtil {
                 if (mqttFixedHeader.isDup() ||
                     mqttFixedHeader.getQosLevel() != MqttQoS.AT_MOST_ONCE ||
                     mqttFixedHeader.isRetain()) {
-                    return new MqttFixedHeader(
-                        mqttFixedHeader.getMessageType(),
-                        false,
-                        MqttQoS.AT_MOST_ONCE,
-                        false,
-                        mqttFixedHeader.getRemainingLength());
+                    mqttFixedHeader.setDup(false);
+                    mqttFixedHeader.setQosLevel(MqttQoS.AT_MOST_ONCE);
+                    mqttFixedHeader.setRetain(false);
                 }
                 return mqttFixedHeader;
             case PUBREL:
             case SUBSCRIBE:
             case UNSUBSCRIBE:
                 if (mqttFixedHeader.isRetain()) {
-                    return new MqttFixedHeader(
-                        mqttFixedHeader.getMessageType(),
-                        mqttFixedHeader.isDup(),
-                        mqttFixedHeader.getQosLevel(),
-                        false,
-                        mqttFixedHeader.getRemainingLength());
+                    mqttFixedHeader.setRetain(false);
                 }
                 return mqttFixedHeader;
             default:
