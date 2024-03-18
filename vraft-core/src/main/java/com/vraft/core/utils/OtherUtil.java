@@ -2,6 +2,7 @@ package com.vraft.core.utils;
 
 import java.lang.reflect.Method;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author jweihsz
@@ -77,5 +78,9 @@ public class OtherUtil {
             }
         }
         return sb.toString();
+    }
+
+    public static long getSysMs() {
+        return TimeUnit.NANOSECONDS.toMillis(System.nanoTime());
     }
 }

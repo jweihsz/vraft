@@ -5,6 +5,7 @@ import java.util.Map;
 import com.vraft.facade.raft.elect.RaftElectService;
 import com.vraft.facade.raft.elect.RaftVoteReq;
 import com.vraft.facade.raft.elect.RaftVoteResp;
+import com.vraft.facade.raft.node.RaftGroup;
 import com.vraft.facade.raft.node.RaftNodeMate;
 import com.vraft.facade.rpc.RpcClient;
 import com.vraft.facade.serializer.Serializer;
@@ -22,6 +23,8 @@ public class RaftElectHolder implements RaftElectService {
     private final static Logger logger = LogManager.getLogger(RaftElectHolder.class);
 
     private final SystemCtx sysCtx;
+    private final RaftGroup raftGroup;
+    private volatile long lastLeaderHeat;
     private static final ThreadLocal<RaftVoteReq> voteReq;
     private static final ThreadLocal<RaftVoteResp> voteResp;
 
@@ -30,8 +33,10 @@ public class RaftElectHolder implements RaftElectService {
         voteResp = new ThreadLocal<>();
     }
 
-    public RaftElectHolder(SystemCtx sysCtx) {
+    public RaftElectHolder(SystemCtx sysCtx,
+        RaftGroup raftGroup) {
         this.sysCtx = sysCtx;
+        this.raftGroup = raftGroup;
     }
 
     private void sendVoteReq(RaftVoteReq req, RaftNodeMate self,

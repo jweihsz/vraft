@@ -8,10 +8,10 @@ import lombok.Data;
  **/
 @Data
 public class RaftNodeMate {
-    private int role;
     private long groupId;
     private long nodeId;
     private String srcIp;
+    private RaftNodeStatus role;
 
     public RaftNodeMate() {}
 
@@ -19,5 +19,5 @@ public class RaftNodeMate {
         this.groupId = groupId;
         this.nodeId = nodeId;
     }
-    
+
 }

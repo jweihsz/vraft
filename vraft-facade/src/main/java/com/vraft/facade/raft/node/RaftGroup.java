@@ -19,11 +19,10 @@ public interface RaftGroup extends LifeCycle {
     RaftNode removePeer(long nodeId);
 
     void setLeaderId(long leaderId);
-    
+
     boolean isSelf(long groupId, long nodeId);
 
     RaftNode addPeer(long nodeId, RaftNode mate);
 
     boolean addPeerIfAbsent(long nodeId, RaftNode mate);
-
 }

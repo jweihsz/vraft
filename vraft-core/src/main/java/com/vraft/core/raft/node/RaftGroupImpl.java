@@ -37,7 +37,7 @@ public class RaftGroupImpl implements RaftGroup {
         validNodeOpts(opts);
         this.peers.clear();
         final RaftNodeMate mate = opts.getMate();
-        RaftNode node = new RaftNodeImpl(sysCtx, mate);
+        RaftNode node = new RaftNodeImpl(sysCtx, opts);
         this.selfId = mate.getNodeId();
         this.groupId = mate.getGroupId();
         this.peers.put(selfId, node);
