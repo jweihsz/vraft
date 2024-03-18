@@ -24,7 +24,7 @@ public interface RpcManager extends LifeCycle {
 
     RpcProcessor getProcessor(Object uid);
 
-    void addProcessor(String uid, RpcProcessor rp);
+    void addProcessor(RpcProcessor rp);
 
     Object removePendMsg(long userId, long msgId);
 

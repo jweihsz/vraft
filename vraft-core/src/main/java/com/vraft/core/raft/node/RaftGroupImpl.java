@@ -107,4 +107,5 @@ public class RaftGroupImpl implements RaftGroup {
         RequireUtil.nonNull(sysCtx.getRpcSrv());
         RequireUtil.nonNull(sysCtx.getRpcClient());
     }
+
 }

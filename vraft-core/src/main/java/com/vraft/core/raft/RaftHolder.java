@@ -14,14 +14,14 @@ public class RaftHolder implements RaftService {
 
     private final SystemCtx sysCtx;
 
-    private RaftHolder(SystemCtx sysCtx) {
+    public RaftHolder(SystemCtx sysCtx) {
         this.sysCtx = sysCtx;
     }
 
     @Override
-    public void shutdown() { }
+    public void shutdown() {}
 
     @Override
-    public void startup() throws Exception { }
+    public void startup() throws Exception {}
 
 }

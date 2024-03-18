@@ -117,7 +117,8 @@ public class RpcManagerImpl implements RpcManager {
     }
 
     @Override
-    public void addProcessor(String uid, RpcProcessor rp) {
+    public void addProcessor(RpcProcessor rp) {
+        final String uid = rp.uid();
         if (uid == null || uid.isEmpty() || rp == null) {return;}
         final ByteBuf bf = RpcCommon.convert(uid);
         processor.put(bf, rp);

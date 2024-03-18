@@ -12,14 +12,14 @@ public interface RaftGroup extends LifeCycle {
 
     RaftNode getSelf();
 
-    void setLeaderId(long leaderId);
-
     RaftNode getPeer(long nodeId);
 
     Map<Long, RaftNode> getPeers();
 
     RaftNode removePeer(long nodeId);
 
+    void setLeaderId(long leaderId);
+    
     boolean isSelf(long groupId, long nodeId);
 
     RaftNode addPeer(long nodeId, RaftNode mate);
