@@ -12,14 +12,10 @@ import lombok.Data;
  **/
 @Data
 public class RaftNodeOpts {
-
-    private int electTimeout = 1000;
+    private RaftNodeMate self;
     private FsmCallback fsmCallback;
-    private volatile long curTerm = 0L;
-    private volatile long lastLeaderHeat;
-    private volatile long curNodeId = -1L;
-    private volatile long leaderId = -1L;
-
+    private int electTimeout = 1000;
+    private int maxElectTimeout = 2000;
     private final Map<Long, RaftNodeMate> np;
     private final Map<Long, RaftNodeMate> op;
 

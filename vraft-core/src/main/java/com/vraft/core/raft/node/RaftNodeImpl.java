@@ -3,8 +3,11 @@ package com.vraft.core.raft.node;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Consumer;
 
 import com.vraft.core.raft.elect.RaftElectBallot;
+import com.vraft.core.raft.peers.PeersConfigMgr;
 import com.vraft.core.utils.OtherUtil;
 import com.vraft.core.utils.RequireUtil;
 import com.vraft.facade.raft.elect.RaftVoteReq;
@@ -19,6 +22,7 @@ import com.vraft.facade.serializer.Serializer;
 import com.vraft.facade.serializer.SerializerEnum;
 import com.vraft.facade.serializer.SerializerMgr;
 import com.vraft.facade.system.SystemCtx;
+import com.vraft.facade.timer.TimerService;
 
 /**
  * @author jweihsz
@@ -29,7 +33,10 @@ public class RaftNodeImpl implements RaftNode {
     private final SystemCtx sysCtx;
     private final RaftNodeOpts opts;
     private final RaftElectBallot ballot;
-
+    private Object preVoteTask, forVoteTask;
+    private final Consumer<Object> preVoteApply;
+    private final Consumer<Object> forVoteApply;
+    private final PeersConfigMgr peersConfigMgr;
     private static final ThreadLocal<RaftVoteReq> voteReq;
     private static final ThreadLocal<RaftVoteResp> voteResp;
 
@@ -42,13 +49,21 @@ public class RaftNodeImpl implements RaftNode {
         this.opts = opts;
         this.sysCtx = sysCtx;
         this.ballot = new RaftElectBallot(sysCtx);
+        this.preVoteApply = (p) -> doVote(true);
+        this.forVoteApply = (p) -> doVote(false);
+        this.peersConfigMgr = new PeersConfigMgr();
     }
 
     @Override
     public void shutdown() {}
 
     @Override
-    public void init() throws Exception {}
+    public void init() throws Exception {
+        RaftNodeMate mate = opts.getSelf();
+        mate.setRole(RaftNodeStatus.FOLLOWER);
+        mate.setLastLeaderHeat(OtherUtil.getSysMs());
+        startVote(true);
+    }
 
     @Override
     public void startup() throws Exception {
@@ -62,8 +77,52 @@ public class RaftNodeImpl implements RaftNode {
         RequireUtil.nonNull(sysCtx.getTimerSvs());
     }
 
+    private void stopVote(boolean isPre) {
+        TimerService timer = sysCtx.getTimerSvs();
+        if (isPre && preVoteTask != null) {
+            timer.removeTimeout(preVoteTask);
+            preVoteTask = null;
+        } else if (!isPre && forVoteTask != null) {
+            timer.removeTimeout(forVoteTask);
+            forVoteTask = null;
+        }
+    }
+
+    private void startVote(boolean isPre) {
+        Consumer<Object> apply = null;
+        TimerService timer = sysCtx.getTimerSvs();
+        apply = isPre ? preVoteApply : forVoteApply;
+        long delay = randomTimeout(opts.getElectTimeout());
+        Object task = timer.addTimeout(apply, sysCtx, delay);
+        if (isPre) {preVoteTask = task;} else {forVoteTask = task;}
+    }
+
+    private void doVote(boolean isPre) {
+        if (isPre) {
+            doPreVote();
+        } else {
+            doForVote();
+        }
+    }
+
+    private void doForVote() {
+        try {
+            if (!canDoForPre()) {return;}
+        } catch (Exception ex) {ex.printStackTrace();}
+    }
+
     private void doPreVote() {
-        if (!canDoPreVote()) {return;}
+        try {
+            if (!canDoPreVote()) {return;}
+            sendVoteReq(buildVoteReq(false));
+        } catch (Exception ex) {ex.printStackTrace();}
+    }
+
+    private boolean canDoForPre() {
+        RaftNodeMate mate = opts.getSelf();
+        if (mate == null) {return false;}
+        final RaftNodeStatus role = mate.getRole();
+        return (role == RaftNodeStatus.CANDIDATE);
     }
 
     private boolean canDoPreVote() {
@@ -73,37 +132,38 @@ public class RaftNodeImpl implements RaftNode {
     }
 
     private boolean isPreVoteRole() {
-        final long nodeId = opts.getCurNodeId();
-        RaftNodeMate mate = opts.getNp().get(nodeId);
+        RaftNodeMate mate = opts.getSelf();
         if (mate == null) {return false;}
         final RaftNodeStatus role = mate.getRole();
         return (role == RaftNodeStatus.FOLLOWER);
     }
 
     private boolean isActive(RaftNodeOpts opts) {
-        final long nodeId = opts.getCurNodeId();
+        long nodeId = opts.getSelf().getNodeId();
         return opts.getNp().containsKey(nodeId)
             || opts.getOp().containsKey(nodeId);
     }
 
     private boolean isLeaderValid() {
-        final long last = opts.getLastLeaderHeat();
+        final long last = opts.getSelf().getLastLeaderHeat();
         return OtherUtil.getSysMs() - last < opts.getElectTimeout();
     }
 
     private void resetLeaderId(long leaderId) {
-        long oldLeaderId = opts.getLeaderId();
+        RaftNodeMate self = opts.getSelf();
+        long oldLeaderId = self.getLeaderId();
         FsmCallback fsm = opts.getFsmCallback();
-        opts.setLeaderId(leaderId);
+        self.setLeaderId(leaderId);
         if (fsm == null) {return;}
         if (oldLeaderId > 0 && leaderId < 0) {
-            fsm.onStopFollowing(oldLeaderId, opts.getCurTerm());
+            fsm.onStopFollowing(oldLeaderId, self.getCurTerm());
         } else if (oldLeaderId < 0 && leaderId > 0) {
-            fsm.onStartFollowing(leaderId, opts.getCurTerm());
+            fsm.onStartFollowing(leaderId, self.getCurTerm());
         }
     }
 
     private void sendVoteReq(RaftVoteReq req) throws Exception {
+        final RaftNodeMate self = opts.getSelf();
         SerializerMgr szMgr = sysCtx.getSerializerMgr();
         Serializer sz = szMgr.get(SerializerEnum.KRYO_ID);
         RpcClient client = sysCtx.getRpcClient();
@@ -112,7 +172,7 @@ public class RaftNodeImpl implements RaftNode {
         Set<Long> filters = null;
         if (!opts.getOp().isEmpty()) {filters = new HashSet<>();}
         for (Map.Entry<Long, RaftNodeMate> entry : opts.getNp().entrySet()) {
-            if (entry.getKey() == opts.getCurNodeId()) {continue;}
+            if (entry.getKey() == self.getNodeId()) {continue;}
             final RaftNodeMate mate = entry.getValue();
             long userId = client.doConnect(mate.getSrcIp());
             if (userId < 0) {return;}
@@ -120,7 +180,7 @@ public class RaftNodeImpl implements RaftNode {
             if (filters != null) {filters.add(entry.getKey());}
         }
         for (Map.Entry<Long, RaftNodeMate> entry : opts.getOp().entrySet()) {
-            if (entry.getKey() == opts.getCurNodeId()) {continue;}
+            if (entry.getKey() == self.getNodeId()) {continue;}
             if (filters == null || filters.contains(entry.getKey())) {continue;}
             final RaftNodeMate mate = entry.getValue();
             long userId = client.doConnect(mate.getSrcIp());
@@ -130,12 +190,14 @@ public class RaftNodeImpl implements RaftNode {
 
     }
 
-    private RaftVoteReq buildVoteReq(RaftNodeMate self) {
+    private RaftVoteReq buildVoteReq(boolean isPre) {
+        final RaftNodeMate self = opts.getSelf();
         RaftVoteReq req = null;
         req = getVoteReqObj();
-        req.setCurTerm(0L);
-        req.setLastLogId(0L);
-        req.setLastTerm(0L);
+        req.setPre(isPre);
+        req.setCurTerm(self.getCurTerm());
+        req.setLastLogId(self.getLastLogId());
+        req.setLastTerm(self.getLastTerm());
         req.setNodeId(self.getNodeId());
         req.setGroupId(self.getGroupId());
         req.setSrcIp(self.getSrcIp());
@@ -156,6 +218,11 @@ public class RaftNodeImpl implements RaftNode {
         resp = new RaftVoteResp();
         voteResp.set(resp);
         return resp;
+    }
+
+    private int randomTimeout(int timeoutMs) {
+        return ThreadLocalRandom.current()
+            .nextInt(timeoutMs, opts.getMaxElectTimeout());
     }
 
 }
