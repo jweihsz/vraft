@@ -17,4 +17,15 @@ public class MathUtil {
         return (n < 0) ? 1 : (n >= 1073741824) ? 1073741824 : n + 1;
     }
 
+    public static long address2long(String ip, int port) {
+        long res = 0L;
+        RequireUtil.isTrue(port > 0);
+        RequireUtil.isTrue(ip != null && !ip.isEmpty());
+        final String[] ss = ip.split("\\.");
+        for (String str : ss) {
+            res = res << 8L | Long.parseLong(str);
+        }
+        return res << 32L | port;
+    }
+
 }
