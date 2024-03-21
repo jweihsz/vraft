@@ -1,9 +1,9 @@
 package com.vraft.facade.raft.node;
 
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 import com.vraft.facade.raft.fsm.FsmCallback;
+import com.vraft.facade.raft.peers.PeersService;
 import lombok.Data;
 
 /**
@@ -16,12 +16,7 @@ public class RaftNodeOpts {
     private FsmCallback fsmCallback;
     private int electTimeout = 1000;
     private int maxElectTimeout = 2000;
-    private final Map<Long, RaftNodeMate> np;
-    private final Map<Long, RaftNodeMate> op;
-
-    public RaftNodeOpts() {
-        this.np = new ConcurrentHashMap<>();
-        this.op = new ConcurrentHashMap<>();
-    }
-
+    private Map<Long, RaftNodeMate> np;
+    private Map<Long, RaftNodeMate> op;
+    private PeersService peersService;
 }

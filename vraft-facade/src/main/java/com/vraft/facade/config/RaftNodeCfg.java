@@ -8,5 +8,6 @@ import lombok.Data;
  **/
 @Data
 public class RaftNodeCfg {
+    private String raftSelf;
     private String raftPeers;
 }

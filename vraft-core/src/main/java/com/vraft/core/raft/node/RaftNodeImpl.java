@@ -7,7 +7,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 
 import com.vraft.core.raft.elect.RaftElectBallot;
-import com.vraft.core.raft.peers.PeersConfigMgr;
+import com.vraft.core.raft.peers.PeersManager;
 import com.vraft.core.utils.OtherUtil;
 import com.vraft.core.utils.RequireUtil;
 import com.vraft.facade.raft.elect.RaftVoteReq;
@@ -17,18 +17,22 @@ import com.vraft.facade.raft.node.RaftNode;
 import com.vraft.facade.raft.node.RaftNodeMate;
 import com.vraft.facade.raft.node.RaftNodeOpts;
 import com.vraft.facade.raft.node.RaftNodeStatus;
+import com.vraft.facade.raft.peers.PeersService;
 import com.vraft.facade.rpc.RpcClient;
 import com.vraft.facade.serializer.Serializer;
 import com.vraft.facade.serializer.SerializerEnum;
 import com.vraft.facade.serializer.SerializerMgr;
 import com.vraft.facade.system.SystemCtx;
 import com.vraft.facade.timer.TimerService;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * @author jweihsz
  * @version 2024/3/11 11:33
  **/
 public class RaftNodeImpl implements RaftNode {
+    private final static Logger logger = LogManager.getLogger(RaftNodeImpl.class);
 
     private final SystemCtx sysCtx;
     private final RaftNodeOpts opts;
@@ -36,7 +40,6 @@ public class RaftNodeImpl implements RaftNode {
     private Object preVoteTask, forVoteTask;
     private final Consumer<Object> preVoteApply;
     private final Consumer<Object> forVoteApply;
-    private final PeersConfigMgr peersConfigMgr;
     private static final ThreadLocal<RaftVoteReq> voteReq;
     private static final ThreadLocal<RaftVoteResp> voteResp;
 
@@ -51,7 +54,6 @@ public class RaftNodeImpl implements RaftNode {
         this.ballot = new RaftElectBallot(sysCtx);
         this.preVoteApply = (p) -> doVote(true);
         this.forVoteApply = (p) -> doVote(false);
-        this.peersConfigMgr = new PeersConfigMgr();
     }
 
     @Override
@@ -62,6 +64,10 @@ public class RaftNodeImpl implements RaftNode {
         RaftNodeMate mate = opts.getSelf();
         mate.setRole(RaftNodeStatus.FOLLOWER);
         mate.setLastLeaderHeat(OtherUtil.getSysMs());
+
+        PeersService peersSrv = new PeersManager(sysCtx);
+        opts.setPeersService(peersSrv);
+
         startVote(true);
     }
 
