@@ -4,6 +4,7 @@ import java.util.concurrent.CountDownLatch;
 
 import com.vraft.core.actor.ActorHolder;
 import com.vraft.core.config.ConfigHolder;
+import com.vraft.core.raft.node.RaftNodeImpl;
 import com.vraft.core.raft.proc.RaftVoteReqProc;
 import com.vraft.core.raft.proc.RaftVoteRespProc;
 import com.vraft.core.rpc.RpcClientImpl;
@@ -12,10 +13,14 @@ import com.vraft.core.rpc.RpcServerImpl;
 import com.vraft.core.serialize.SerializeHolder;
 import com.vraft.core.timer.TimerHolder;
 import com.vraft.core.uid.UidHolder;
+import com.vraft.core.utils.MathUtil;
 import com.vraft.facade.actor.ActorService;
 import com.vraft.facade.config.ConfigServer;
+import com.vraft.facade.config.RaftNodeCfg;
 import com.vraft.facade.config.RpcClientCfg;
 import com.vraft.facade.config.RpcServerCfg;
+import com.vraft.facade.raft.node.RaftNode;
+import com.vraft.facade.raft.node.RaftNodeMate;
 import com.vraft.facade.rpc.RpcClient;
 import com.vraft.facade.rpc.RpcManager;
 import com.vraft.facade.rpc.RpcServer;
@@ -34,12 +39,12 @@ public class Bootstrap {
     public static void main(String[] args) throws Exception {
         logger.info("hello vRaft!");
         CountDownLatch ct = new CountDownLatch(1);
-        startup();
+        Bootstrap b = new Bootstrap().init();
+        b.startup();
         ct.await();
     }
 
-    private static void startup() throws Exception {
-
+    private Bootstrap init() throws Exception {
         UidService uidSrv = new UidHolder();
         sysCtx.setUidSvs(uidSrv);
 
@@ -55,7 +60,8 @@ public class Bootstrap {
         sysCtx.setTimerSvs(timerSvs);
 
         RpcManager rpcMgr = new RpcManagerImpl(sysCtx);
-        registerProc(rpcMgr);
+        rpcMgr.addProcessor(new RaftVoteReqProc(sysCtx));
+        rpcMgr.addProcessor(new RaftVoteRespProc(sysCtx));
         rpcMgr.startup();
         sysCtx.setRpcMgr(rpcMgr);
 
@@ -72,11 +78,20 @@ public class Bootstrap {
         ActorService actorSrv = new ActorHolder(sysCtx);
         sysCtx.setActorSvs(actorSrv);
 
+        return this;
+
     }
 
-    private static void registerProc(RpcManager rpcMgr) {
-        rpcMgr.addProcessor(new RaftVoteReqProc(sysCtx));
-        rpcMgr.addProcessor(new RaftVoteRespProc(sysCtx));
+    private void startup() throws Exception {
+        ConfigServer cfgSrv = sysCtx.getCfgSvs();
+        RaftNodeCfg cfg = cfgSrv.getRaftNodeCfg();
+        RaftNodeMate self = new RaftNodeMate();
+        self.setGroupId(1);
+        self.setSrcIp(cfg.getRaftSelf());
+        self.setNodeId(MathUtil.address2long(cfg.getRaftSelf()));
+        RaftNode node = new RaftNodeImpl(sysCtx, self);
+        node.init();
+        node.startup();
     }
 
 }

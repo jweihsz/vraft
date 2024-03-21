@@ -76,6 +76,7 @@ public class ConfigHolder implements ConfigServer {
     }
 
     private Properties parseCfg(String path) throws Exception {
+        logger.info("config file path:{}", path);
         if (path == null || path.isEmpty()) {return null;}
         final Properties props = new Properties();
         ClassLoader cl = this.getClass().getClassLoader();

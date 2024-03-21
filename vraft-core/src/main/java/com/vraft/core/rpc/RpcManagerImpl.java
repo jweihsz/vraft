@@ -50,7 +50,8 @@ public class RpcManagerImpl implements RpcManager {
     @Override
     public void removeChannel(long userId) {
         final Channel ch = connects.get(userId);
-        address.remove(RpcCommon.remoteAddressStr(ch));
+        String host = ch.attr(RpcCommon.HOST_KEY).get();
+        if (host != null) {address.remove(host);}
         connects.remove(userId);
     }
 
@@ -60,18 +61,21 @@ public class RpcManagerImpl implements RpcManager {
         final Channel ch = (Channel)channel;
         long userId = ch.attr(RpcCommon.CH_KEY).get();
         connects.remove(userId);
-        address.remove(RpcCommon.remoteAddressStr(ch));
+        String host = ch.attr(RpcCommon.HOST_KEY).get();
+        if (host != null) {address.remove(host);}
+
     }
 
     @Override
-    public void addChannel(long userId, Object channel) {
+    public void addChannel(long userId, String host, Object channel) {
         if (!(channel instanceof Channel)) {return;}
         final Channel ch = (Channel)channel;
         Channel old = connects.put(userId, ch);
         if (old != null) {old.close();}
         ch.attr(RpcCommon.CH_KEY).set(userId);
         ch.attr(RpcCommon.CH_PEND).set(new ConcurrentHashMap<>());
-        address.put(RpcCommon.remoteAddressStr(ch), userId);
+        ch.attr(RpcCommon.HOST_KEY).set(host);
+        address.put(host, userId);
     }
 
     @Override

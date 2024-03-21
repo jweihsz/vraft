@@ -29,7 +29,7 @@ public class ActorWriteChannel implements ActorProcessor<RpcCmd> {
 
     @Override
     public void process(long deadline, Actor<RpcCmd> self) {
-
+        logger.info(" start process");
     }
 
     @Override

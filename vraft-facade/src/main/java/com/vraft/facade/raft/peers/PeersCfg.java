@@ -1,7 +1,7 @@
 package com.vraft.facade.raft.peers;
 
-import java.util.LinkedList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 import com.vraft.facade.raft.node.RaftNodeMate;
 import lombok.Data;
@@ -12,11 +12,27 @@ import lombok.Data;
  **/
 @Data
 public class PeersCfg {
-    private List<RaftNodeMate> peers;
-    private List<RaftNodeMate> learners;
+    private Map<Long, RaftNodeMate> peers;
+    private Map<Long, RaftNodeMate> learners;
 
     public PeersCfg() {
-        this.peers = new LinkedList<>();
-        this.learners = new LinkedList<>();
+        this.peers = new HashMap<>();
+        this.learners = new HashMap<>();
+    }
+
+    public boolean hasKeyInPeers(long key) {
+        return peers.containsKey(key);
+    }
+
+    public boolean hasKeyInLearners(long key) {
+        return learners.containsKey(key);
+    }
+
+    public boolean hasKey(long key) {
+        return learners.containsKey(key) || peers.containsKey(key);
+    }
+
+    public boolean isEmpty() {
+        return learners.isEmpty() && peers.isEmpty();
     }
 }

@@ -28,4 +28,9 @@ public class MathUtil {
         return res << 32L | port;
     }
 
+    public static long address2long(String address) {
+        String[] ss = address.split(":");
+        return address2long(ss[0], Integer.parseInt(ss[1]));
+    }
+
 }

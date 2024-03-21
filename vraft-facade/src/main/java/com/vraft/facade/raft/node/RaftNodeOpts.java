@@ -1,7 +1,5 @@
 package com.vraft.facade.raft.node;
 
-import java.util.Map;
-
 import com.vraft.facade.raft.fsm.FsmCallback;
 import com.vraft.facade.raft.peers.PeersService;
 import lombok.Data;
@@ -16,7 +14,12 @@ public class RaftNodeOpts {
     private FsmCallback fsmCallback;
     private int electTimeout = 1000;
     private int maxElectTimeout = 2000;
-    private Map<Long, RaftNodeMate> np;
-    private Map<Long, RaftNodeMate> op;
     private PeersService peersService;
+
+    public RaftNodeOpts() {}
+
+    public RaftNodeOpts(RaftNodeMate self) {
+        this.self = self;
+    }
+
 }

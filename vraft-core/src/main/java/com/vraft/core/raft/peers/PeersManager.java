@@ -1,8 +1,7 @@
 package com.vraft.core.raft.peers;
 
-import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
+import java.util.Map;
 
 import com.vraft.core.utils.MathUtil;
 import com.vraft.core.utils.RequireUtil;
@@ -24,40 +23,44 @@ public class PeersManager implements PeersService {
     private final static Logger logger = LogManager.getLogger(PeersService.class);
 
     private final SystemCtx sysCtx;
-    private final PeersEntry curCfg;
-    private final PeersEntry snapshot;
-    private final LinkedList<PeersEntry> dataList;
+    private final PeersEntry curEntry;
+    private final PeersEntry snapshotEntry;
+    private final LinkedList<PeersEntry> hisEntry;
 
     public PeersManager(SystemCtx sysCtx) {
         this.sysCtx = sysCtx;
-        this.curCfg = PeersEntry.build();
-        this.snapshot = PeersEntry.build();
-        this.dataList = new LinkedList<>();
+        this.curEntry = PeersEntry.build();
+        this.hisEntry = new LinkedList<>();
+        this.snapshotEntry = PeersEntry.build();
     }
 
     @Override
     public void init() throws Exception {
         ConfigServer cfgSrv = sysCtx.getCfgSvs();
         final RaftNodeCfg cfg = cfgSrv.getRaftNodeCfg();
-        parseCurCfg(curCfg.getCurConf(), cfg);
+        parseCurCfg(curEntry.getCurConf(), cfg);
     }
 
     @Override
-    public PeersEntry getCurCfg() {return curCfg;}
+    public PeersEntry getCurEntry() {return curEntry;}
 
     @Override
-    public PeersEntry getSnapshot() {return snapshot;}
+    public PeersEntry getSnapshotEntry() {return snapshotEntry;}
 
     @Override
-    public LinkedList<PeersEntry> getLists() {return dataList;}
+    public LinkedList<PeersEntry> getHisEntry() {return hisEntry;}
 
     private void parseCurCfg(PeersCfg cur, RaftNodeCfg cfg) {
         RequireUtil.nonNull(cfg.getRaftSelf());
         RequireUtil.nonNull(cfg.getRaftPeers());
-        List<RaftNodeMate> peers = cur.getPeers();
-        addPeer(peers, buildMate(cfg.getRaftSelf()));
+        Map<Long, RaftNodeMate> peers = cur.getPeers();
+        RaftNodeMate mate = buildMate(cfg.getRaftSelf());
+        peers.put(mate.getNodeId(), mate);
         String[] ss = cfg.getRaftPeers().split(",");
-        for (String s : ss) {addPeer(peers, buildMate(s));}
+        for (String s : ss) {
+            mate = buildMate(s);
+            peers.put(mate.getNodeId(), mate);
+        }
     }
 
     private RaftNodeMate buildMate(String address) {
@@ -66,32 +69,6 @@ public class PeersManager implements PeersService {
         int port = Integer.parseInt(ss[1]);
         long nodeId = MathUtil.address2long(ss[0], port);
         return new RaftNodeMate(nodeId, address);
-    }
-
-    private RaftNodeMate getPeer(List<RaftNodeMate> lists, long nodeId) {
-        if (lists == null || lists.isEmpty()) {return null;}
-        for (RaftNodeMate mate : lists) {
-            if (mate.getNodeId() == nodeId) {return mate;}
-        }
-        return null;
-    }
-
-    private void removePeer(List<RaftNodeMate> lists, long nodeId) {
-        if (lists == null || lists.isEmpty()) {return;}
-        final Iterator<RaftNodeMate> it = lists.iterator();
-        while (it.hasNext()) {
-            RaftNodeMate mate = it.next();
-            if (mate.getNodeId() != nodeId) {continue;}
-            it.remove();
-            break;
-        }
-    }
-
-    private void addPeer(List<RaftNodeMate> lists, RaftNodeMate mate) {
-        if (mate == null) {return;}
-        if (lists == null || lists.isEmpty()) {return;}
-        removePeer(lists, mate.getNodeId());
-        lists.add(mate);
     }
 
 }

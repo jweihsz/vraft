@@ -77,11 +77,11 @@ public class RpcInitializer {
         @Override
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
             try {
-                InetSocketAddress sad = RpcCommon.remoteAddress(ctx.channel());
-                logger.info("rpc server active:{}", sad);
+                String host = RpcCommon.remoteAddressStr(ctx.channel());
+                logger.info("rpc server active:{}", host);
                 UidService uid = sysCtx.getUidSvs();
                 RpcManager rpcMgr = sysCtx.getRpcMgr();
-                rpcMgr.addChannel(uid.genUserId(), ctx.channel());
+                rpcMgr.addChannel(uid.genUserId(), host, ctx.channel());
             } catch (Exception ex) {
                 logger.error("rpc server active error:{}", ex.getMessage());
                 ex.printStackTrace();

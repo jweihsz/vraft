@@ -55,7 +55,7 @@ public class RpcClientImpl implements RpcClient {
         if (ch == null) {return -1L;}
         UidService uid = sysCtx.getUidSvs();
         userId = uid.genUserId();
-        rpcMgr.addChannel(userId, ch);
+        rpcMgr.addChannel(userId, host, ch);
         return userId;
     }
 

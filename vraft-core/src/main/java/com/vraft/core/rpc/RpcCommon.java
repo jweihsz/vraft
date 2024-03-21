@@ -56,6 +56,7 @@ public class RpcCommon {
     public static final byte[] EMPTY_BUFFER = new byte[0];
 
     public static final AttributeKey<Long> CH_KEY;
+    public static final AttributeKey<String> HOST_KEY;
     public static final AttributeKey<Map<Long, Object>> CH_PEND;
 
     public static final EventLoopGroup BOSS_GROUP;
@@ -63,6 +64,7 @@ public class RpcCommon {
 
     static {
         CH_KEY = AttributeKey.valueOf("ch_key");
+        HOST_KEY = AttributeKey.valueOf("host_key");
         CH_PEND = AttributeKey.valueOf("ch_resp_pend");
         BOSS_GROUP = eventLoop(1);
         WORKER_GROUP = eventLoop(SystemUtil.getPhyCpuNum());

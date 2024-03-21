@@ -10,9 +10,9 @@ import com.vraft.facade.common.LifeCycle;
  **/
 public interface PeersService extends LifeCycle {
 
-    default PeersEntry getCurCfg() {return null;}
+    default PeersEntry getCurEntry() {return null;}
 
-    default PeersEntry getSnapshot() {return null;}
+    default PeersEntry getSnapshotEntry() {return null;}
 
-    default LinkedList<PeersEntry> getLists() {return null;}
+    default LinkedList<PeersEntry> getHisEntry() {return null;}
 }

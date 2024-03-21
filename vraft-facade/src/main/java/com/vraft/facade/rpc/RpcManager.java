@@ -18,8 +18,6 @@ public interface RpcManager extends LifeCycle {
 
     void removeChannel(Object channel);
 
-    void addChannel(long userId, Object channel);
-
     void removeProcessor(String uid);
 
     RpcProcessor getProcessor(Object uid);
@@ -33,5 +31,7 @@ public interface RpcManager extends LifeCycle {
     boolean addPendMsg(long userId, long msgId, Object obj);
 
     boolean addPendMsg(Object channel, long msgId, Object obj);
+
+    void addChannel(long userId, String host, Object channel);
 
 }

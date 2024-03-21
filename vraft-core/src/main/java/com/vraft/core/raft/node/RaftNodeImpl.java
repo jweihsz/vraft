@@ -1,5 +1,6 @@
 package com.vraft.core.raft.node;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -17,6 +18,7 @@ import com.vraft.facade.raft.node.RaftNode;
 import com.vraft.facade.raft.node.RaftNodeMate;
 import com.vraft.facade.raft.node.RaftNodeOpts;
 import com.vraft.facade.raft.node.RaftNodeStatus;
+import com.vraft.facade.raft.peers.PeersEntry;
 import com.vraft.facade.raft.peers.PeersService;
 import com.vraft.facade.rpc.RpcClient;
 import com.vraft.facade.serializer.Serializer;
@@ -48,9 +50,9 @@ public class RaftNodeImpl implements RaftNode {
         voteResp = new ThreadLocal<>();
     }
 
-    public RaftNodeImpl(SystemCtx sysCtx, RaftNodeOpts opts) {
-        this.opts = opts;
+    public RaftNodeImpl(SystemCtx sysCtx, RaftNodeMate self) {
         this.sysCtx = sysCtx;
+        this.opts = new RaftNodeOpts(self);
         this.ballot = new RaftElectBallot(sysCtx);
         this.preVoteApply = (p) -> doVote(true);
         this.forVoteApply = (p) -> doVote(false);
@@ -61,22 +63,34 @@ public class RaftNodeImpl implements RaftNode {
 
     @Override
     public void init() throws Exception {
+        validBase(sysCtx);
+        validSelf(opts.getSelf());
         RaftNodeMate mate = opts.getSelf();
         mate.setRole(RaftNodeStatus.FOLLOWER);
-        mate.setLastLeaderHeat(OtherUtil.getSysMs());
+        mate.setLastLeaderHeat(-1L);
 
         PeersService peersSrv = new PeersManager(sysCtx);
+        peersSrv.init();
         opts.setPeersService(peersSrv);
 
-        startVote(true);
+        SerializerMgr szMgr = sysCtx.getSerializerMgr();
+        Serializer sz = szMgr.get(SerializerEnum.KRYO_ID);
+        sz.registerClz(Arrays.asList(RaftVoteReq.class, RaftVoteResp.class));
+
     }
 
     @Override
     public void startup() throws Exception {
-        valid(sysCtx);
+        startVote(true);
     }
 
-    private void valid(SystemCtx sysCtx) {
+    public void validSelf(RaftNodeMate mate) {
+        RequireUtil.nonNull(mate);
+        RequireUtil.isTrue(mate.getGroupId() > 0);
+        RequireUtil.nonNull(mate.getSrcIp());
+    }
+
+    private void validBase(SystemCtx sysCtx) {
         RequireUtil.nonNull(sysCtx);
         RequireUtil.nonNull(sysCtx.getRpcSrv());
         RequireUtil.nonNull(sysCtx.getRpcClient());
@@ -146,8 +160,10 @@ public class RaftNodeImpl implements RaftNode {
 
     private boolean isActive(RaftNodeOpts opts) {
         long nodeId = opts.getSelf().getNodeId();
-        return opts.getNp().containsKey(nodeId)
-            || opts.getOp().containsKey(nodeId);
+        PeersService peersSrv = opts.getPeersService();
+        PeersEntry entry = peersSrv.getCurEntry();
+        return entry.getCurConf().hasKey(nodeId)
+            || entry.getOldConf().hasKey(nodeId);
     }
 
     private boolean isLeaderValid() {
@@ -176,19 +192,26 @@ public class RaftNodeImpl implements RaftNode {
         String uid = RaftVoteReq.class.getName();
         byte[] body = sz.serialize(req);
         Set<Long> filters = null;
-        if (!opts.getOp().isEmpty()) {filters = new HashSet<>();}
-        for (Map.Entry<Long, RaftNodeMate> entry : opts.getNp().entrySet()) {
+        PeersService peersSrv = opts.getPeersService();
+        PeersEntry e = peersSrv.getCurEntry();
+        if (!e.getOldConf().isEmpty()) {filters = new HashSet<>();}
+
+        Map<Long, RaftNodeMate> peers = e.getCurConf().getPeers();
+        for (Map.Entry<Long, RaftNodeMate> entry : peers.entrySet()) {
             if (entry.getKey() == self.getNodeId()) {continue;}
             final RaftNodeMate mate = entry.getValue();
+            logger.info("mate:{}", mate);
             long userId = client.doConnect(mate.getSrcIp());
             if (userId < 0) {return;}
             client.oneWay(userId, (byte)0, uid, null, body);
             if (filters != null) {filters.add(entry.getKey());}
         }
-        for (Map.Entry<Long, RaftNodeMate> entry : opts.getOp().entrySet()) {
+        Map<Long, RaftNodeMate> old = e.getOldConf().getPeers();
+        for (Map.Entry<Long, RaftNodeMate> entry : old.entrySet()) {
             if (entry.getKey() == self.getNodeId()) {continue;}
             if (filters == null || filters.contains(entry.getKey())) {continue;}
             final RaftNodeMate mate = entry.getValue();
+            logger.info("mate2:{}", mate);
             long userId = client.doConnect(mate.getSrcIp());
             if (userId < 0) {return;}
             client.oneWay(userId, (byte)0, uid, null, body);
