@@ -38,12 +38,16 @@ import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.AttributeKey;
 import io.netty.util.CharsetUtil;
 import io.netty.util.internal.ThreadLocalRandom;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * @author jweihsz
  * @version 2024/2/6 16:51
  **/
 public class RpcCommon {
+    private final static Logger logger = LogManager.getLogger(RpcCommon.class);
+
     private RpcCommon() {}
 
     //client connect time out
@@ -360,21 +364,6 @@ public class RpcCommon {
             mate.array(), uidBuf, headerBuf, bodyBuf);
     }
 
-    public static Consumer<Object> buildConsumer(RpcManager rpcMgr, ActorService actor) {
-        final Throwable timeout = new Exception("rpc time out");
-        return (param) -> {
-            if (!(param instanceof RpcCmd)) {return;}
-            final RpcCmd temp = (RpcCmd)param;
-            final long msgId = temp.getMsgId();
-            final long userId = temp.getUserId();
-            Object obj = rpcMgr.removePendMsg(userId, msgId);
-            if (!(obj instanceof RpcCmd)) {return;}
-            final RpcCmd cmd = (RpcCmd)param;
-            cmd.setEx(timeout);
-            if (actor.dispatchAsyncRsp(userId, cmd)) {return;}
-            ((RpcCmdExt)cmd).recycle();
-        };
-    }
 }
 
 

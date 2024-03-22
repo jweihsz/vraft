@@ -1,5 +1,7 @@
 package com.vraft.core.actor;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -84,9 +86,11 @@ public class ActorSystem {
         private static final int shouldNotProcessMask = ~2;
         private final Queue<E> queue;
         private AtomicInteger status;
-        private long total, actorId;
+        private long total;
+        private long actorId;
         private volatile long submitTs;
         private volatile long executeTs;
+        private final List<E> dataList;
         final ActorSystem actorSystem;
         final ActorProcessor<E> processor;
 
@@ -96,6 +100,7 @@ public class ActorSystem {
             this.status = new AtomicInteger();
             this.actorSystem = actorSystem;
             this.processor = processor;
+            this.dataList = new ArrayList<>();
             this.queue = PlatformDependent.newMpscQueue();
         }
 
@@ -147,6 +152,10 @@ public class ActorSystem {
         }
 
         public Queue<E> getQueue() {return queue;}
+
+        public List<E> getDataList() {return dataList;}
+
+        public long getActorId() {return actorId;}
 
         final boolean setAsScheduled() {
             while (true) {

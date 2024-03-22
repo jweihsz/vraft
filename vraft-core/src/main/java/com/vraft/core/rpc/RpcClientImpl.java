@@ -43,20 +43,37 @@ public class RpcClientImpl implements RpcClient {
     public void shutdown() {}
 
     @Override
-    public long doConnect(String host) throws Exception {
-        RpcManager rpcMgr = sysCtx.getRpcMgr();
-        long userId = rpcMgr.getUserId(host);
-        if (userId > 0) {return userId;}
-        InetSocketAddress a = RpcCommon.parser(host);
-        final ChannelFuture future = bs.connect(a);
-        final int timeout = RpcCommon.CONN_TIMEOUT;
-        Channel ch = future.awaitUninterruptibly(timeout)
-            ? future.channel() : null;
-        if (ch == null) {return -1L;}
-        UidService uid = sysCtx.getUidSvs();
-        userId = uid.genUserId();
-        rpcMgr.addChannel(userId, host, ch);
-        return userId;
+    public long doConnect(String host) {
+        try {
+            RpcManager rpcMgr = sysCtx.getRpcMgr();
+            long userId = rpcMgr.getUserId(host);
+            if (userId > 0) {return userId;}
+            InetSocketAddress a = RpcCommon.parser(host);
+            final ChannelFuture future = bs.connect(a);
+            final int timeout = RpcCommon.CONN_TIMEOUT;
+            future.awaitUninterruptibly(timeout);
+            if (!future.isDone()) {
+                String errMsg = "Connect " + host + " timeout!";
+                logger.warn(errMsg);
+                throw new Exception(errMsg);
+            }
+            if (future.isCancelled()) {
+                String errMsg = "Connect " + host + " cancelled!";
+                logger.warn(errMsg);
+                throw new Exception(errMsg);
+            }
+            if (!future.isSuccess()) {
+                String errMsg = "Connect " + host + " error!";
+                logger.warn(errMsg);
+                throw new Exception(errMsg, future.cause());
+            }
+            Channel ch = future.channel();
+            if (ch == null) {return -1L;}
+            UidService uid = sysCtx.getUidSvs();
+            userId = uid.genUserId();
+            rpcMgr.addChannel(userId, host, ch);
+            return userId;
+        } catch (Exception ex) {return -1L;}
     }
 
     @Override

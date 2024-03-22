@@ -16,7 +16,7 @@ public class ActorHolder implements ActorService {
     private static final Logger logger = LoggerFactory.getLogger(ActorHolder.class);
 
     private final SystemCtx sysCtx;
-    public final ActorSystem actor;
+    private final ActorSystem actor;
     private final ActorProcessor<RpcCmd> actorWch;
     private final ActorProcessor<RpcCmd> actorRsp;
 

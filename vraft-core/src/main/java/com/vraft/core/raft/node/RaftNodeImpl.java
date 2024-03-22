@@ -200,9 +200,8 @@ public class RaftNodeImpl implements RaftNode {
         for (Map.Entry<Long, RaftNodeMate> entry : peers.entrySet()) {
             if (entry.getKey() == self.getNodeId()) {continue;}
             final RaftNodeMate mate = entry.getValue();
-            logger.info("mate:{}", mate);
             long userId = client.doConnect(mate.getSrcIp());
-            if (userId < 0) {return;}
+            if (userId < 0) {continue;}
             client.oneWay(userId, (byte)0, uid, null, body);
             if (filters != null) {filters.add(entry.getKey());}
         }
@@ -211,9 +210,8 @@ public class RaftNodeImpl implements RaftNode {
             if (entry.getKey() == self.getNodeId()) {continue;}
             if (filters == null || filters.contains(entry.getKey())) {continue;}
             final RaftNodeMate mate = entry.getValue();
-            logger.info("mate2:{}", mate);
             long userId = client.doConnect(mate.getSrcIp());
-            if (userId < 0) {return;}
+            if (userId < 0) {continue;}
             client.oneWay(userId, (byte)0, uid, null, body);
         }
 
