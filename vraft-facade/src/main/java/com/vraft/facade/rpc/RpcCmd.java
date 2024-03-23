@@ -15,6 +15,7 @@ public class RpcCmd {
     private String uid;
     private long msgId;
     private long userId;
+    private long groupId;
     private byte[] body;
     private byte[] header;
     private long timeout;

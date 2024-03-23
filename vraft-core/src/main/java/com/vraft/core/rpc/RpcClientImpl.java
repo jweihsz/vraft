@@ -77,22 +77,27 @@ public class RpcClientImpl implements RpcClient {
     }
 
     @Override
-    public boolean oneWay(long userId, byte biz, String uid, byte[] header,
-        byte[] body) throws Exception {
-        return RpcCommon.dispatchOneWay(sysCtx, userId, biz, uid, header, body);
+    public boolean oneWay(long userId, byte biz, long groupId,
+        String uid, byte[] header, byte[] body) throws Exception {
+        return RpcCommon.dispatchOneWay(
+            sysCtx, userId, biz,
+            groupId, uid, header, body);
     }
 
     @Override
-    public boolean twoWay(long userId, byte biz, String uid, byte[] header,
-        byte[] body, long timeout, CallBack cb) throws Exception {
-        return RpcCommon.dispatchTwoWay(sysCtx, userId, biz,
+    public boolean twoWay(long userId, byte biz, long groupId,
+        String uid, byte[] header, byte[] body, long timeout,
+        CallBack cb) throws Exception {
+        return RpcCommon.dispatchTwoWay(
+            sysCtx, userId, biz, groupId,
             uid, header, body, timeout, cb);
     }
 
     @Override
-    public boolean resp(long userId, byte biz, long msgId,
-        String uid, byte[] header, byte[] body) throws Exception {
-        return RpcCommon.dispatchResp(sysCtx, userId, biz,
+    public boolean resp(long userId, byte biz, long groupId,
+        long msgId, String uid, byte[] header, byte[] body) throws Exception {
+        return RpcCommon.dispatchResp(
+            sysCtx, userId, biz, groupId,
             msgId, uid, header, body);
     }
 

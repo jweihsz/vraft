@@ -52,11 +52,11 @@ public class RpcCommon {
     //client connect time out
     public static int CONN_TIMEOUT = 3000;
 
-    public static int RPC_MATE_SIZE = 1/*version(byte)*/
-        + 1/*biz(byte)*/ + 1/*type(byte)*/
-        + 8/*seq(long)*/ + 4/*uid-size(int)*/
-        + 4/*header-size(int)*/ + 4/*body-size(int)*/;
     public static final byte[] EMPTY_BUFFER = new byte[0];
+
+    public static int RPC_MATE_SIZE = 1/*version(byte)*/ + 1/*biz(byte)*/
+        + 1/*type(byte)*/ + 8/*groupId(long)*/ + 8/*seq(long)*/
+        + 4/*uid-size(int)*/ + 4/*header-size(int)*/ + 4/*body-size(int)*/;
 
     public static final AttributeKey<Long> CH_KEY;
     public static final AttributeKey<String> HOST_KEY;
@@ -157,7 +157,7 @@ public class RpcCommon {
     }
 
     public static int getRpcUidSize(ByteBuf bf) {
-        int index = bf.readerIndex() + 11;
+        int index = bf.readerIndex() + 19;
         return bf.getInt(index);
     }
 
@@ -216,37 +216,55 @@ public class RpcCommon {
         return bf.slice(index, size);
     }
 
-    public static boolean dispatchRpc(SystemCtx ctx, long userId,
-        byte biz, byte type, long msgId, String uid, byte[] header,
+    public static boolean dispatchRpc(
+        SystemCtx ctx, long userId,
+        byte biz, byte type, long groupId,
+        long msgId, String uid, byte[] header,
         byte[] body, long timeout, CallBack cb) throws Exception {
         final ActorService actor = ctx.getActorSvs();
-        final RpcCmd cmd = buildBaseCmd(userId, biz, type,
-            msgId, uid, body, header, cb, timeout);
+        final RpcCmd cmd = buildBaseCmd(
+            userId, biz, type,
+            groupId, msgId, uid,
+            body, header, cb, timeout);
         if (actor.dispatchWriteChMsg(userId, cmd)) {return true;}
         ((RpcCmdExt)cmd).recycle();
         return false;
     }
 
-    public static boolean dispatchOneWay(SystemCtx ctx, long userId,
-        byte biz, String uid, byte[] header, byte[] body) throws Exception {
+    public static boolean dispatchOneWay(
+        SystemCtx ctx, long userId,
+        byte biz, long groupId, String uid,
+        byte[] header, byte[] body) throws Exception {
         final UidService genId = ctx.getUidSvs();
-        return dispatchRpc(ctx, userId, biz, RpcConsts.RPC_ONE_WAY,
-            genId.genMsgId(), uid, header, body, -1L, null);
+        return dispatchRpc(
+            ctx, userId, biz,
+            RpcConsts.RPC_ONE_WAY, groupId,
+            genId.genMsgId(), uid, header,
+            body, -1L, null);
     }
 
-    public static boolean dispatchTwoWay(SystemCtx ctx, long userId,
-        byte biz, String uid, byte[] header, byte[] body, long timeout,
-        CallBack cb) throws Exception {
+    public static boolean dispatchTwoWay(
+        SystemCtx ctx, long userId,
+        byte biz, long groupId, String uid,
+        byte[] header, byte[] body,
+        long timeout, CallBack cb) throws Exception {
         final UidService genId = ctx.getUidSvs();
-        return dispatchRpc(ctx, userId, biz, RpcConsts.RPC_TWO_WAY,
-            genId.genMsgId(), uid, header, body, timeout, cb);
+        return dispatchRpc(
+            ctx, userId, biz,
+            RpcConsts.RPC_TWO_WAY, groupId,
+            genId.genMsgId(), uid,
+            header, body, timeout, cb);
     }
 
-    public static boolean dispatchResp(SystemCtx ctx, long userId,
-        byte biz, long msgId, String uid, byte[] header,
-        byte[] body) throws Exception {
-        return dispatchRpc(ctx, userId, biz, RpcConsts.RPC_RESPONSE,
-            msgId, uid, header, body, -1L, null);
+    public static boolean dispatchResp(
+        SystemCtx ctx, long userId, byte biz,
+        long groupId, long msgId, String uid,
+        byte[] header, byte[] body) throws Exception {
+        return dispatchRpc(
+            ctx, userId, biz,
+            RpcConsts.RPC_RESPONSE, groupId,
+            msgId, uid, header, body,
+            -1L, null);
     }
 
     public static boolean invokeBatch(SystemCtx ctx, long userId,
@@ -273,8 +291,10 @@ public class RpcCommon {
         }
     }
 
-    public static RpcCmd buildBaseCmd(long userId, byte biz,
-        byte type, long id, String uid, byte[] body, byte[] header,
+    public static RpcCmd buildBaseCmd(
+        long userId, byte biz, byte type,
+        long groupId, long id, String uid,
+        byte[] body, byte[] header,
         CallBack cb, long timeout) {
         RpcCmd cmd = ObjectsPool.RPC_CMD_RECYCLER.get();
         cmd.setBiz(biz);
@@ -287,6 +307,7 @@ public class RpcCommon {
         cmd.setBody(body);
         cmd.setTimeout(timeout);
         cmd.setMsgId(id);
+        cmd.setGroupId(groupId);
         return cmd;
     }
 
@@ -361,6 +382,7 @@ public class RpcCommon {
         mate.writeByte(RpcConsts.RPC_VERSION);
         mate.writeByte(rq);
         mate.writeByte(0x00);
+        mate.writeLong(0x00);
         mate.writeLong(id);
         mate.writeInt(uidBuf.length);
         mate.writeInt(headerBuf.length);

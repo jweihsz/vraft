@@ -11,12 +11,14 @@ public interface RpcClient extends LifeCycle {
 
     long doConnect(String host);
 
-    boolean oneWay(long userId, byte biz, String uid, byte[] header,
-        byte[] body) throws Exception;
+    boolean oneWay(long userId, byte biz, long groupId,
+        String uid, byte[] header, byte[] body) throws Exception;
 
-    boolean twoWay(long userId, byte biz, String uid, byte[] header,
-        byte[] body, long timeout, CallBack cb) throws Exception;
+    boolean twoWay(long userId, byte biz, long groupId,
+        String uid, byte[] header, byte[] body, long timeout,
+        CallBack cb) throws Exception;
 
-    boolean resp(long userId, byte biz, long msgId, String uid,
+    boolean resp(long userId, byte biz, long groupId,
+        long msgId, String uid,
         byte[] header, byte[] body) throws Exception;
 }

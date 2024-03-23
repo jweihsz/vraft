@@ -214,7 +214,8 @@ public class RaftNodeImpl implements RaftNode {
             final RaftNodeMate mate = entry.getValue();
             long userId = client.doConnect(mate.getSrcIp());
             if (userId < 0) {continue;}
-            client.oneWay(userId, (byte)0, uid, null, body);
+            client.oneWay(userId, (byte)0, mate.getGroupId(),
+                uid, null, body);
             if (filters != null) {filters.add(entry.getKey());}
         }
         Map<Long, RaftNodeMate> old = e.getOldConf().getPeers();
@@ -224,7 +225,7 @@ public class RaftNodeImpl implements RaftNode {
             final RaftNodeMate mate = entry.getValue();
             long userId = client.doConnect(mate.getSrcIp());
             if (userId < 0) {continue;}
-            client.oneWay(userId, (byte)0, uid, null, body);
+            client.oneWay(userId, (byte)0, mate.getGroupId(), uid, null, body);
         }
 
     }
