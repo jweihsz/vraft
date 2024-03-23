@@ -63,7 +63,6 @@ public class RpcManagerImpl implements RpcManager {
         connects.remove(userId);
         String host = ch.attr(RpcCommon.HOST_KEY).get();
         if (host != null) {address.remove(host);}
-
     }
 
     @Override
@@ -123,7 +122,8 @@ public class RpcManagerImpl implements RpcManager {
     @Override
     public void addProcessor(RpcProcessor rp) {
         final String uid = rp.uid();
-        if (uid == null || uid.isEmpty() || rp == null) {return;}
+        
+        if (uid == null || uid.isEmpty()) {return;}
         final ByteBuf bf = RpcCommon.convert(uid);
         processor.put(bf, rp);
     }

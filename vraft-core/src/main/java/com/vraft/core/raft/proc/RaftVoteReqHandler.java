@@ -1,5 +1,6 @@
 package com.vraft.core.raft.proc;
 
+import com.vraft.facade.raft.elect.RaftVoteReq;
 import com.vraft.facade.rpc.RpcProcessor;
 import com.vraft.facade.system.SystemCtx;
 import org.apache.logging.log4j.LogManager;
@@ -7,26 +8,27 @@ import org.apache.logging.log4j.Logger;
 
 /**
  * @author jweihsz
- * @version 2024/3/14 20:43
+ * @version 2024/3/14 20:41
  **/
-public class RaftVoteRespProc implements RpcProcessor {
+public class RaftVoteReqHandler implements RpcProcessor {
 
-    private final static Logger logger = LogManager.getLogger(RaftVoteRespProc.class);
+    private final static Logger logger = LogManager.getLogger(RaftVoteReqHandler.class);
 
     private final SystemCtx sysCtx;
 
-    public RaftVoteRespProc(SystemCtx sysCtx) {
+    public RaftVoteReqHandler(SystemCtx sysCtx) {
         this.sysCtx = sysCtx;
     }
 
     @Override
     public void handle(long connectId, long msgId,
         byte[] header, byte[] body) throws Exception {
-
+        logger.info("RaftVoteReqHandler");
     }
 
     @Override
     public String uid() {
-        return RaftVoteRespProc.class.getName();
+        return RaftVoteReq.class.getName();
     }
+
 }

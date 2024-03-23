@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 import com.vraft.core.raft.elect.RaftElectBallot;
@@ -40,6 +41,8 @@ public class RaftNodeImpl implements RaftNode {
     private final RaftNodeOpts opts;
     private final RaftElectBallot ballot;
     private Object preVoteTask, forVoteTask;
+    private final AtomicBoolean preVoteStatus;
+    private final AtomicBoolean forVoteStatus;
     private final Consumer<Object> preVoteApply;
     private final Consumer<Object> forVoteApply;
     private static final ThreadLocal<RaftVoteReq> voteReq;
@@ -56,6 +59,8 @@ public class RaftNodeImpl implements RaftNode {
         this.ballot = new RaftElectBallot(sysCtx);
         this.preVoteApply = (p) -> doVote(true);
         this.forVoteApply = (p) -> doVote(false);
+        this.preVoteStatus = new AtomicBoolean(false);
+        this.forVoteStatus = new AtomicBoolean(false);
     }
 
     @Override
@@ -81,7 +86,7 @@ public class RaftNodeImpl implements RaftNode {
 
     @Override
     public void startup() throws Exception {
-        startVote(true);
+        startVote(true, true);
     }
 
     public void validSelf(RaftNodeMate mate) {
@@ -102,15 +107,21 @@ public class RaftNodeImpl implements RaftNode {
         if (isPre && preVoteTask != null) {
             timer.removeTimeout(preVoteTask);
             preVoteTask = null;
+            preVoteStatus.set(false);
         } else if (!isPre && forVoteTask != null) {
             timer.removeTimeout(forVoteTask);
             forVoteTask = null;
+            forVoteStatus.set(false);
         }
     }
 
-    private void startVote(boolean isPre) {
+    private void startVote(boolean isPre, boolean force) {
         Consumer<Object> apply = null;
         TimerService timer = sysCtx.getTimerSvs();
+        if (!force && isPre && !preVoteStatus.get()) {return;}
+        if (!force && !isPre && !forVoteStatus.get()) {return;}
+        if (force && isPre) {preVoteStatus.set(true);}
+        if (force && !isPre) {forVoteStatus.set(true);}
         apply = isPre ? preVoteApply : forVoteApply;
         long delay = randomTimeout(opts.getElectTimeout());
         Object task = timer.addTimeout(apply, sysCtx, delay);
@@ -123,6 +134,7 @@ public class RaftNodeImpl implements RaftNode {
         } else {
             doForVote();
         }
+        startVote(isPre, false);
     }
 
     private void doForVote() {

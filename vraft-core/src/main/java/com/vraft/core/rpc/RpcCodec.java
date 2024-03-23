@@ -7,12 +7,15 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.codec.MessageToMessageEncoder;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * @author jweihsz
  * @version 2024/2/10 12:15
  **/
 public class RpcCodec {
+    private final static Logger logger = LogManager.getLogger(RpcCodec.class);
 
     public static class Encoder extends MessageToMessageEncoder<ByteBuf> {
         @Override

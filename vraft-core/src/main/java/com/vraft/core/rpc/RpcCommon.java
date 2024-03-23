@@ -36,7 +36,6 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.AttributeKey;
-import io.netty.util.CharsetUtil;
 import io.netty.util.internal.ThreadLocalRandom;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -53,10 +52,10 @@ public class RpcCommon {
     //client connect time out
     public static int CONN_TIMEOUT = 3000;
 
-    //version(byte)|biz(byte)|type(byte)|seq(long)|uid-size(int)
-    // |header-size(int)|body-size(int)|uid-content(bytes)
-    // |header-content(bytes)|body-content(bytes)
-    public static int RPC_MATE_SIZE = 1 + 1 + 1 + 8 + 4 + 4 + 4;
+    public static int RPC_MATE_SIZE = 1/*version(byte)*/
+        + 1/*biz(byte)*/ + 1/*type(byte)*/
+        + 8/*seq(long)*/ + 4/*uid-size(int)*/
+        + 4/*header-size(int)*/ + 4/*body-size(int)*/;
     public static final byte[] EMPTY_BUFFER = new byte[0];
 
     public static final AttributeKey<Long> CH_KEY;
@@ -149,7 +148,7 @@ public class RpcCommon {
     }
 
     public static ByteBuf convert(String str) {
-        return Unpooled.copiedBuffer(str, CharsetUtil.UTF_8);
+        return Unpooled.wrappedBuffer(str.getBytes());
     }
 
     public static boolean checkRpcMate(ByteBuf bf) {
@@ -158,11 +157,12 @@ public class RpcCommon {
     }
 
     public static int getRpcUidSize(ByteBuf bf) {
-        return bf.getInt(9/*1+1+8-1*/);
+        int index = bf.readerIndex() + 11;
+        return bf.getInt(index);
     }
 
     public static int getRpcUidIndex(ByteBuf bf) {
-        return RPC_MATE_SIZE - 1;
+        return bf.readerIndex() + RPC_MATE_SIZE;
     }
 
     public static int getRpcHeaderSize(ByteBuf bf) {
@@ -230,7 +230,7 @@ public class RpcCommon {
     public static boolean dispatchOneWay(SystemCtx ctx, long userId,
         byte biz, String uid, byte[] header, byte[] body) throws Exception {
         final UidService genId = ctx.getUidSvs();
-        return dispatchRpc(ctx, userId, RpcConsts.RPC_ONE_WAY, biz,
+        return dispatchRpc(ctx, userId, biz, RpcConsts.RPC_ONE_WAY,
             genId.genMsgId(), uid, header, body, -1L, null);
     }
 
@@ -268,7 +268,7 @@ public class RpcCommon {
             cbf.release();
             return false;
         } else {
-            ch.writeAndFlush(cbf);
+            ch.writeAndFlush(cbf.retain());
             return true;
         }
     }
@@ -333,37 +333,40 @@ public class RpcCommon {
         String uid, byte[] header, byte[] body) {
         int totalLen = RpcCommon.RPC_MATE_SIZE;
         byte[] bodyBuf, uidBuf, headerBuf;
-        if (body == null) {
-            bodyBuf = RpcCommon.EMPTY_BUFFER;
-        } else {
-            bodyBuf = body;
-        }
-        totalLen += bodyBuf.length;
-        if (header == null) {
-            headerBuf = RpcCommon.EMPTY_BUFFER;
-        } else {
-            headerBuf = header;
-        }
-        totalLen += headerBuf.length;
         if (uid == null) {
             uidBuf = RpcCommon.EMPTY_BUFFER;
         } else {
             uidBuf = uid.getBytes();
         }
         totalLen += uidBuf.length;
-        ByteBuf mate = Unpooled.buffer(32);
+        if (header == null) {
+            headerBuf = RpcCommon.EMPTY_BUFFER;
+        } else {
+            headerBuf = header;
+        }
+        totalLen += headerBuf.length;
+
+        if (body == null) {
+            bodyBuf = RpcCommon.EMPTY_BUFFER;
+        } else {
+            bodyBuf = body;
+        }
+        totalLen += bodyBuf.length;
+
+        byte[] mateArr = new byte[RpcCommon.RPC_MATE_SIZE + 6];
+        ByteBuf mate = Unpooled.wrappedBuffer(mateArr);
+        mate.resetWriterIndex();
         mate.writeShort(RpcConsts.RPC_MAGIC);
         mate.writeInt(totalLen);
         mate.writeByte(RpcConsts.RPC_VERSION);
         mate.writeByte(rq);
+        mate.writeByte(0x00);
         mate.writeLong(id);
         mate.writeInt(uidBuf.length);
         mate.writeInt(headerBuf.length);
         mate.writeInt(bodyBuf.length);
-        return Unpooled.wrappedBuffer(
-            mate.array(), uidBuf, headerBuf, bodyBuf);
+        return Unpooled.wrappedBuffer(mateArr, uidBuf, headerBuf, bodyBuf);
     }
-
 }
 
 

@@ -39,22 +39,24 @@ public class ActorWriteChannel implements ActorProcessor<RpcCmd> {
     @Override
     public void process(long deadline, Actor<RpcCmd> self) {
         RpcCmd obj = null;
+        long userId = -1;
         List<RpcCmd> dataList = self.getDataList();
         do {
             obj = self.getQueue().poll();
             if (obj != null) { dataList.add(obj);}
+            if (userId < 0 && obj != null) {
+                userId = obj.getUserId();
+            }
             if (dataList.size() >= maxNum) {
-                RpcCommon.invokeBatch(
-                    sysCtx, self.getActorId(),
-                    rspWatch, dataList);
+                RpcCommon.invokeBatch(sysCtx,
+                    userId, rspWatch, dataList);
                 reset(dataList);
             }
             if (obj == null) {break;}
         } while (System.currentTimeMillis() < deadline);
         if (dataList.size() > 0) {
-            RpcCommon.invokeBatch(
-                sysCtx, self.getActorId(),
-                rspWatch, dataList);
+            RpcCommon.invokeBatch(sysCtx,
+                userId, rspWatch, dataList);
             reset(dataList);
         }
     }
