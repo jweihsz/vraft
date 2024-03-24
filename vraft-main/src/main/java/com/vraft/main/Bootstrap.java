@@ -4,9 +4,9 @@ import java.util.concurrent.CountDownLatch;
 
 import com.vraft.core.actor.ActorHolder;
 import com.vraft.core.config.ConfigHolder;
+import com.vraft.core.raft.handler.RaftVoteReqHandler;
+import com.vraft.core.raft.handler.RaftVoteRespHandler;
 import com.vraft.core.raft.node.RaftNodeImpl;
-import com.vraft.core.raft.proc.RaftVoteReqHandler;
-import com.vraft.core.raft.proc.RaftVoteRespHandler;
 import com.vraft.core.rpc.RpcClientImpl;
 import com.vraft.core.rpc.RpcManagerImpl;
 import com.vraft.core.rpc.RpcServerImpl;

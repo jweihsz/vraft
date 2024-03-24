@@ -1,5 +1,6 @@
 package com.vraft.core.actor;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -58,8 +59,9 @@ public class ActorRaftGroup implements ActorProcessor<ByteBuf> {
     private void processGroup(List<ByteBuf> dataList) {
         if (dataList == null || dataList.isEmpty()) {return;}
         try {
-            for (ByteBuf bf : dataList) {
-                processByteBuf(bf);
+            Iterator<ByteBuf> it = dataList.iterator();
+            while (it.hasNext()) {
+                processByteBuf(it.next(), it.hasNext());
             }
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -74,13 +76,19 @@ public class ActorRaftGroup implements ActorProcessor<ByteBuf> {
         dataList.clear();
     }
 
-    private void processByteBuf(ByteBuf bf) throws Exception {
+    private void processByteBuf(ByteBuf bf, boolean hasNext) throws Exception {
         final RpcManager rpcMgr = sysCtx.getRpcMgr();
         final ByteBuf uid = RpcCommon.getRpcUid(bf);
         RpcProcessor p = rpcMgr.getProcessor(uid);
         if (p != null) {
-            logger.info("get processor  for uid:{}",
-                new String(ByteBufUtil.getBytes(uid)));
+            long messageId = RpcCommon.getRpcSeq(bf);
+            long connectId = RpcCommon.getGroupId(bf);
+            byte[] header = RpcCommon.getHeaderBytes(bf);
+            byte[] body = RpcCommon.getBodyBytes(bf);
+            p.handle(connectId, messageId, header, body, hasNext);
+        } else {
+            String err = new String(ByteBufUtil.getBytes(uid));
+            logger.info("fail processor  for uid:{}", err);
         }
     }
 }

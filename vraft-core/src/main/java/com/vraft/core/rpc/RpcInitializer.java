@@ -108,10 +108,13 @@ public class RpcInitializer {
             Object msg) throws Exception {
             if (!(msg instanceof ByteBuf)) {return;}
             ActorService actor = sysCtx.getActorSvs();
+            final RpcManager rpcMgr = sysCtx.getRpcMgr();
             final ByteBuf bf = (ByteBuf)msg;
             try {
                 long groupId = RpcCommon.getGroupId(bf);
                 actor.dispatchRaftGroup(groupId, bf.retain());
+                long userId = rpcMgr.getUserId(ctx.channel());
+                RpcCommon.setGroupId(bf, userId);
             } catch (Exception ex) {
                 ex.printStackTrace();
             } finally {bf.release();}

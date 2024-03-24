@@ -8,5 +8,5 @@ public interface RpcProcessor {
 
     String uid();
 
-    void handle(long connectId, long msgId, byte[] header, byte[] body) throws Exception;
+    void handle(long connectId, long msgId, byte[] header, byte[] body, boolean hasNext) throws Exception;
 }

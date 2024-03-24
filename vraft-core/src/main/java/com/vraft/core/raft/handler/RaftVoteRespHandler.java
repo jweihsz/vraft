@@ -1,4 +1,4 @@
-package com.vraft.core.raft.proc;
+package com.vraft.core.raft.handler;
 
 import com.vraft.facade.raft.elect.RaftVoteResp;
 import com.vraft.facade.rpc.RpcProcessor;
@@ -22,9 +22,8 @@ public class RaftVoteRespHandler implements RpcProcessor {
 
     @Override
     public void handle(long connectId, long msgId,
-        byte[] header, byte[] body) throws Exception {
+        byte[] header, byte[] body, boolean hasNext) throws Exception {
         logger.info("RaftVoteRespHandler");
-
     }
 
     @Override

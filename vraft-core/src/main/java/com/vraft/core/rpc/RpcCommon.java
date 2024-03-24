@@ -17,6 +17,7 @@ import com.vraft.facade.system.SystemCtx;
 import com.vraft.facade.timer.TimerService;
 import com.vraft.facade.uid.UidService;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.CompositeByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -166,20 +167,36 @@ public class RpcCommon {
     }
 
     public static int getRpcHeaderSize(ByteBuf bf) {
-        return bf.getInt(13/*1+1+8+4-1*/);
+        int index = bf.readerIndex() + 23;
+        return bf.getInt(index);
     }
 
     public static int getRpcHeaderIndex(ByteBuf bf) {
-        return RPC_MATE_SIZE - 1 + getRpcUidSize(bf);
+        return bf.readerIndex() + RPC_MATE_SIZE + getRpcUidSize(bf);
+    }
+
+    public static byte[] getHeaderBytes(ByteBuf bf) {
+        int size = getRpcHeaderSize(bf);
+        if (size <= 0) {return null;}
+        int index = getRpcHeaderIndex(bf);
+        return ByteBufUtil.getBytes(bf, index, size);
     }
 
     public static int getRpcBodySize(ByteBuf bf) {
-        return bf.getInt(17/*1+1+8+4+4-1*/);
+        int index = bf.readerIndex() + 27;
+        return bf.getInt(index);
     }
 
     public static int getRpcBodyIndex(ByteBuf bf) {
-        return RPC_MATE_SIZE - 1
+        return bf.readerIndex() + RPC_MATE_SIZE
             + getRpcUidSize(bf) + getRpcHeaderSize(bf);
+    }
+
+    public static byte[] getBodyBytes(ByteBuf bf) {
+        int size = getRpcBodySize(bf);
+        if (size <= 0) {return null;}
+        int index = getRpcBodyIndex(bf);
+        return ByteBufUtil.getBytes(bf, index, size);
     }
 
     public static byte getRpcVer(ByteBuf bf) {
@@ -195,11 +212,16 @@ public class RpcCommon {
     }
 
     public static long getRpcSeq(ByteBuf bf) {
-        return bf.getLong(2);
+        int index = bf.readerIndex() + 11;
+        return bf.getLong(index);
     }
 
     public static long getGroupId(ByteBuf bf) {
         return bf.getLong(3);
+    }
+
+    public static void setGroupId(ByteBuf bf, long groupId) {
+        bf.setLong(3, groupId);
     }
 
     public static ByteBuf getRpcUid(ByteBuf bf) {
