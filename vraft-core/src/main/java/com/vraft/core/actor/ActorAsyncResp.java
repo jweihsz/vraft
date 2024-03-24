@@ -5,7 +5,6 @@ import com.vraft.core.actor.ActorSystem.ActorProcessor;
 import com.vraft.facade.rpc.RpcCmd;
 import com.vraft.facade.system.SystemCtx;
 import com.vraft.facade.uid.UidService;
-import io.netty.buffer.ByteBuf;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -31,8 +30,8 @@ public class ActorAsyncResp implements ActorProcessor<RpcCmd> {
     }
 
     @Override
-    public long actorId(long userId, ByteBuf uid) {
-        int index = (int)((userId) & (group - 1));
+    public long actorId(long extId) {
+        int index = (int)((extId) & (group - 1));
         return actorIds[index];
     }
 

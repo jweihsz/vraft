@@ -4,13 +4,12 @@ import java.net.InetSocketAddress;
 
 import com.vraft.core.rpc.RpcCodec.Decoder;
 import com.vraft.core.rpc.RpcCodec.Encoder;
+import com.vraft.facade.actor.ActorService;
 import com.vraft.facade.rpc.RpcConsts;
 import com.vraft.facade.rpc.RpcManager;
-import com.vraft.facade.rpc.RpcProcessor;
 import com.vraft.facade.system.SystemCtx;
 import com.vraft.facade.uid.UidService;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufUtil;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
@@ -108,20 +107,14 @@ public class RpcInitializer {
         public void channelRead(ChannelHandlerContext ctx,
             Object msg) throws Exception {
             if (!(msg instanceof ByteBuf)) {return;}
+            ActorService actor = sysCtx.getActorSvs();
             final ByteBuf bf = (ByteBuf)msg;
             try {
-                RpcManager rpcMgr = sysCtx.getRpcMgr();
-                ByteBuf uid = RpcCommon.getRpcUid(bf);
-                RpcProcessor p = rpcMgr.getProcessor(uid);
-                if (p != null) {
-                    logger.info("get processor  for uid:{}",
-                        new String(ByteBufUtil.getBytes(uid)));
-                }
+                long groupId = RpcCommon.getGroupId(bf);
+                actor.dispatchRaftGroup(groupId, bf.retain());
             } catch (Exception ex) {
                 ex.printStackTrace();
-            } finally {
-                bf.release();
-            }
+            } finally {bf.release();}
         }
 
         @Override

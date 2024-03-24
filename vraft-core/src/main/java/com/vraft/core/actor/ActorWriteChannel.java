@@ -14,7 +14,6 @@ import com.vraft.facade.rpc.RpcCmd;
 import com.vraft.facade.rpc.RpcManager;
 import com.vraft.facade.system.SystemCtx;
 import com.vraft.facade.uid.UidService;
-import io.netty.buffer.ByteBuf;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -62,12 +61,12 @@ public class ActorWriteChannel implements ActorProcessor<RpcCmd> {
     }
 
     @Override
-    public long actorId(long userId, ByteBuf uid) {
-        Long actorId = maps.get(userId);
+    public long actorId(long extId) {
+        Long actorId = maps.get(extId);
         if (actorId != null) {return actorId;}
         UidService id = sysCtx.getUidSvs();
-        actorId = maps.put(userId, id.genActorId());
-        return actorId == null ? maps.get(userId) : actorId;
+        actorId = maps.put(extId, id.genActorId());
+        return actorId == null ? maps.get(extId) : actorId;
     }
 
     private void reset(List<RpcCmd> dataList) {

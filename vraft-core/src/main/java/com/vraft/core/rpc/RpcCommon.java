@@ -198,6 +198,10 @@ public class RpcCommon {
         return bf.getLong(2);
     }
 
+    public static long getGroupId(ByteBuf bf) {
+        return bf.getLong(3);
+    }
+
     public static ByteBuf getRpcUid(ByteBuf bf) {
         final int size = getRpcUidSize(bf);
         final int index = getRpcUidIndex(bf);
@@ -326,6 +330,7 @@ public class RpcCommon {
     public static ByteBuf buildOneWayPkg(RpcCmd cmd) {
         return buildBasePkg(
             cmd.getType(),
+            cmd.getGroupId(),
             cmd.getMsgId(),
             cmd.getUid(),
             cmd.getHeader(),
@@ -334,8 +339,8 @@ public class RpcCommon {
 
     private static ByteBuf buildTwoWayPkg(SystemCtx ctx,
         Consumer<Object> apply, RpcCmd cmd) {
-        ByteBuf bf = buildBasePkg(cmd.getType(), cmd.getMsgId(),
-            cmd.getUid(), cmd.getHeader(), cmd.getBody());
+        ByteBuf bf = buildBasePkg(cmd.getType(), cmd.getGroupId(),
+            cmd.getMsgId(), cmd.getUid(), cmd.getHeader(), cmd.getBody());
         final RpcManager mgr = ctx.getRpcMgr();
         TimerService timer = ctx.getTimerSvs();
         Object task = timer.addTimeout(apply, cmd, cmd.getTimeout());
@@ -350,8 +355,8 @@ public class RpcCommon {
         }
     }
 
-    public static ByteBuf buildBasePkg(byte rq, long id,
-        String uid, byte[] header, byte[] body) {
+    public static ByteBuf buildBasePkg(byte rq, long groupId,
+        long id, String uid, byte[] header, byte[] body) {
         int totalLen = RpcCommon.RPC_MATE_SIZE;
         byte[] bodyBuf, uidBuf, headerBuf;
         if (uid == null) {
@@ -382,7 +387,7 @@ public class RpcCommon {
         mate.writeByte(RpcConsts.RPC_VERSION);
         mate.writeByte(rq);
         mate.writeByte(0x00);
-        mate.writeLong(0x00);
+        mate.writeLong(groupId);
         mate.writeLong(id);
         mate.writeInt(uidBuf.length);
         mate.writeInt(headerBuf.length);
