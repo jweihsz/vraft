@@ -9,14 +9,17 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 import com.vraft.core.raft.elect.RaftElectBallot;
-import com.vraft.core.raft.peers.PeersManager;
+import com.vraft.core.raft.peers.PeersMgrImpl;
+import com.vraft.core.utils.MathUtil;
 import com.vraft.core.utils.OtherUtil;
 import com.vraft.core.utils.RequireUtil;
+import com.vraft.facade.common.Code;
 import com.vraft.facade.raft.elect.RaftVoteReq;
 import com.vraft.facade.raft.elect.RaftVoteResp;
 import com.vraft.facade.raft.fsm.FsmCallback;
 import com.vraft.facade.raft.node.RaftNode;
 import com.vraft.facade.raft.node.RaftNodeMate;
+import com.vraft.facade.raft.node.RaftNodeMgr;
 import com.vraft.facade.raft.node.RaftNodeOpts;
 import com.vraft.facade.raft.node.RaftNodeStatus;
 import com.vraft.facade.raft.peers.PeersEntry;
@@ -73,8 +76,9 @@ public class RaftNodeImpl implements RaftNode {
         RaftNodeMate mate = opts.getSelf();
         mate.setRole(RaftNodeStatus.FOLLOWER);
         mate.setLastLeaderHeat(-1L);
+        mate.setNodeId(MathUtil.address2long(mate.getSrcIp()));
 
-        PeersService peersSrv = new PeersManager(sysCtx);
+        PeersService peersSrv = new PeersMgrImpl(sysCtx);
         peersSrv.init();
         opts.setPeersService(peersSrv);
 
@@ -82,12 +86,17 @@ public class RaftNodeImpl implements RaftNode {
         Serializer sz = szMgr.get(SerializerEnum.KRYO_ID);
         sz.registerClz(Arrays.asList(RaftVoteReq.class, RaftVoteResp.class));
 
+        sysCtx.getRaftNodeMgr().registerNode(this);
     }
 
     @Override
     public void startup() throws Exception {
         startVote(true, true);
+
     }
+
+    @Override
+    public RaftNodeOpts getOpts() {return opts;}
 
     public void validSelf(RaftNodeMate mate) {
         RequireUtil.nonNull(mate);
@@ -157,9 +166,16 @@ public class RaftNodeImpl implements RaftNode {
         return (role == RaftNodeStatus.CANDIDATE);
     }
 
+    private boolean isActive() {
+        RaftNodeMate mate = opts.getSelf();
+        if (mate == null) {return false;}
+        final RaftNodeStatus status = mate.getRole();
+        return status.ordinal() < RaftNodeStatus.ERROR.ordinal();
+    }
+
     private boolean canDoPreVote() {
-        return isPreVoteRole()
-            && isActive(opts)
+        long selfNodeId = opts.getSelf().getNodeId();
+        return isPreVoteRole() && isInMember(selfNodeId)
             && !isLeaderValid();
     }
 
@@ -170,8 +186,7 @@ public class RaftNodeImpl implements RaftNode {
         return (role == RaftNodeStatus.FOLLOWER);
     }
 
-    private boolean isActive(RaftNodeOpts opts) {
-        long nodeId = opts.getSelf().getNodeId();
+    private boolean isInMember(long nodeId) {
         PeersService peersSrv = opts.getPeersService();
         PeersEntry entry = peersSrv.getCurEntry();
         return entry.getCurConf().hasKey(nodeId)
@@ -181,6 +196,12 @@ public class RaftNodeImpl implements RaftNode {
     private boolean isLeaderValid() {
         final long last = opts.getSelf().getLastLeaderHeat();
         return OtherUtil.getSysMs() - last < opts.getElectTimeout();
+    }
+
+    private void checkReplicator(long nodeId) {
+        final RaftNodeMate mate = opts.getSelf();
+        if (mate.getRole() != RaftNodeStatus.LEADER) {return;}
+        //TODO
     }
 
     private void resetLeaderId(long leaderId) {
@@ -214,8 +235,8 @@ public class RaftNodeImpl implements RaftNode {
             final RaftNodeMate mate = entry.getValue();
             long userId = client.doConnect(mate.getSrcIp());
             if (userId < 0) {continue;}
-            client.oneWay(userId, (byte)0, self.getGroupId(),
-                uid, null, body);
+            client.oneWay(userId, -1L, (byte)0, self.getGroupId(),
+                mate.getNodeId(), uid, null, body);
             if (filters != null) {filters.add(entry.getKey());}
         }
         Map<Long, RaftNodeMate> old = e.getOldConf().getPeers();
@@ -225,9 +246,45 @@ public class RaftNodeImpl implements RaftNode {
             final RaftNodeMate mate = entry.getValue();
             long userId = client.doConnect(mate.getSrcIp());
             if (userId < 0) {continue;}
-            client.oneWay(userId, (byte)0, self.getGroupId(), uid, null, body);
+            client.oneWay(userId, -1L, (byte)0, self.getGroupId(),
+                mate.getNodeId(), uid, null, body);
         }
+    }
 
+    @Override
+    public byte[] processPreVoteReq(RaftVoteReq req) throws Exception {
+        RaftVoteResp res = getVoteRespObj();
+        final RaftNodeMate self = opts.getSelf();
+        final RaftNodeMgr mgr = sysCtx.getRaftNodeMgr();
+        SerializerMgr szMgr = sysCtx.getSerializerMgr();
+        Serializer sz = szMgr.get(SerializerEnum.KRYO_ID);
+        long nodeId = req.getNodeId();
+        long groupId = req.getGroupId();
+        RaftNode node = mgr.getNodeMate(groupId, nodeId);
+        res.setTerm(self.getLastTerm());
+        res.setGranted(false);
+        res.setCode(Code.SUCCESS);
+        if (node == null || !isActive()) {
+            res.setCode(Code.RAFT_NOT_ACTIVE);
+            return sz.serialize(res);
+        } else if (!isInMember(req.getNodeId())) {
+            res.setCode(Code.RAFT_NOT_MEMBER);
+        } else if (isLeaderValid()) {
+            res.setCode(Code.RAFT_VALID_LEADER);
+        } else if (req.getCurTerm() < self.getCurTerm()) {
+            res.setCode(Code.RAFT_TERM_SMALLER);
+            checkReplicator(req.getNodeId());
+        } else {
+            checkReplicator(req.getNodeId());
+            res.setGranted(canGrantedVote(self, req));
+        }
+        return sz.serialize(res);
+    }
+
+    private boolean canGrantedVote(RaftNodeMate self, RaftVoteReq req) {
+        if (self.getCurTerm() > req.getLastTerm()) {return false;}
+        if (self.getCurTerm() < req.getLastTerm()) {return true;}
+        return self.getLastIndex() <= req.getLastIndex();
     }
 
     private RaftVoteReq buildVoteReq(boolean isPre) {
@@ -236,7 +293,7 @@ public class RaftNodeImpl implements RaftNode {
         req = getVoteReqObj();
         req.setPre(isPre);
         req.setCurTerm(self.getCurTerm());
-        req.setLastLogId(self.getLastLogId());
+        req.setLastIndex(self.getLastIndex());
         req.setLastTerm(self.getLastTerm());
         req.setNodeId(self.getNodeId());
         req.setGroupId(self.getGroupId());

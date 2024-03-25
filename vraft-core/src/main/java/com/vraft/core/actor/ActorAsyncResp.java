@@ -13,7 +13,7 @@ import org.apache.logging.log4j.Logger;
  * @version 2024/2/21 15:25
  **/
 public class ActorAsyncResp implements ActorProcessor<RpcCmd> {
-    private final static Logger logger = LogManager.getLogger(ActorWriteChannel.class);
+    private final static Logger logger = LogManager.getLogger(ActorTcpWrite.class);
 
     private final int group = 16;
     private final Long[] actorIds;
@@ -30,7 +30,7 @@ public class ActorAsyncResp implements ActorProcessor<RpcCmd> {
     }
 
     @Override
-    public long actorId(long extId) {
+    public long actorId(long extId, long subId) {
         int index = (int)((extId) & (group - 1));
         return actorIds[index];
     }

@@ -26,7 +26,7 @@ public class ActorRaftGroup implements ActorProcessor<ByteBuf> {
 
     private final SystemCtx sysCtx;
     private final int maxNum = 128;
-    private final Map<Long, Long> maps;
+    private final Map<Long, Map<Long, Long>> maps;
 
     public ActorRaftGroup(SystemCtx sysCtx) {
         this.sysCtx = sysCtx;
@@ -48,12 +48,10 @@ public class ActorRaftGroup implements ActorProcessor<ByteBuf> {
     }
 
     @Override
-    public long actorId(long extId) {
-        Long actorId = maps.get(extId);
-        if (actorId != null) {return actorId;}
-        UidService id = sysCtx.getUidSvs();
-        actorId = maps.put(extId, id.genActorId());
-        return actorId == null ? maps.get(extId) : actorId;
+    public long actorId(long extId, long subId) {
+        final UidService id = sysCtx.getUidSvs();
+        maps.computeIfAbsent(extId, k -> new ConcurrentHashMap<>());
+        return maps.get(extId).computeIfAbsent(subId, k -> id.genActorId());
     }
 
     private void processGroup(List<ByteBuf> dataList) {
@@ -83,9 +81,11 @@ public class ActorRaftGroup implements ActorProcessor<ByteBuf> {
         if (p != null) {
             long messageId = RpcCommon.getRpcSeq(bf);
             long connectId = RpcCommon.getGroupId(bf);
+            long nodeId = RpcCommon.getNodeId(bf);
+            long groupId = RpcCommon.getGroupId(bf);
             byte[] header = RpcCommon.getHeaderBytes(bf);
             byte[] body = RpcCommon.getBodyBytes(bf);
-            p.handle(connectId, messageId, header, body, hasNext);
+            p.handle(-1L, groupId, nodeId, messageId, header, body, hasNext);
         } else {
             String err = new String(ByteBufUtil.getBytes(uid));
             logger.info("fail processor  for uid:{}", err);

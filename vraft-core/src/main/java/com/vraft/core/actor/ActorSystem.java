@@ -30,9 +30,9 @@ public class ActorSystem {
         this.actors = new ConcurrentHashMap<>();
     }
 
-    public <E> boolean dispatch(long extId, E msg,
-        ActorProcessor<E> processor) {
-        Actor<E> actor = createOrGet(extId, processor);
+    public <E> boolean dispatch(long extId, long subId,
+        E msg, ActorProcessor<E> processor) {
+        Actor<E> actor = createOrGet(extId, subId, processor);
         boolean status = actor.dispatch(msg);
         schedule(actor, true);
         return status;
@@ -51,12 +51,13 @@ public class ActorSystem {
         schedule(actor, false);
     }
 
-    public <E> Actor<E> createOrGet(long extId,
+    public <E> Actor<E> createOrGet(
+        long extId, long subId,
         ActorProcessor<E> processor) {
-        long actorId = processor.actorId(extId);
+        long actorId = processor.actorId(extId, subId);
         Actor<E> actor = actors.get(actorId);
         if (actor != null) {return actor;}
-        Actor<E> add = new Actor<>(actorId, extId,
+        Actor<E> add = new Actor<>(actorId, extId, subId,
             this, processor);
         Actor<E> old = actors.putIfAbsent(actorId, add);
         if (old != null) {return old;}
@@ -73,7 +74,7 @@ public class ActorSystem {
     }
 
     public interface ActorProcessor<T> {
-        long actorId(long extId);
+        long actorId(long extId, long subId);
 
         void process(long deadline, Actor<T> self);
     }
@@ -86,6 +87,7 @@ public class ActorSystem {
         private static final int shouldScheduleMask = 3;
         private static final int shouldNotProcessMask = ~2;
         private final long extId;
+        private final long subId;
         private final Queue<E> queue;
         private AtomicInteger status;
         private long total;
@@ -97,9 +99,10 @@ public class ActorSystem {
         final ActorProcessor<E> processor;
 
         public Actor(long actorId, long extId,
-            ActorSystem actorSystem,
+            long subId, ActorSystem actorSystem,
             ActorProcessor<E> processor) {
             this.extId = extId;
+            this.subId = subId;
             this.actorId = actorId;
             this.status = new AtomicInteger();
             this.actorSystem = actorSystem;
@@ -160,7 +163,7 @@ public class ActorSystem {
         public List<E> getDataList() {return dataList;}
 
         public long getExtId() {return extId;}
-        
+
         public long getActorId() {return actorId;}
 
         final boolean setAsScheduled() {

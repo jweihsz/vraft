@@ -7,6 +7,7 @@ import com.vraft.core.config.ConfigHolder;
 import com.vraft.core.raft.handler.RaftVoteReqHandler;
 import com.vraft.core.raft.handler.RaftVoteRespHandler;
 import com.vraft.core.raft.node.RaftNodeImpl;
+import com.vraft.core.raft.node.RaftNodeMgrImpl;
 import com.vraft.core.rpc.RpcClientImpl;
 import com.vraft.core.rpc.RpcManagerImpl;
 import com.vraft.core.rpc.RpcServerImpl;
@@ -21,6 +22,7 @@ import com.vraft.facade.config.RpcClientCfg;
 import com.vraft.facade.config.RpcServerCfg;
 import com.vraft.facade.raft.node.RaftNode;
 import com.vraft.facade.raft.node.RaftNodeMate;
+import com.vraft.facade.raft.node.RaftNodeMgr;
 import com.vraft.facade.rpc.RpcClient;
 import com.vraft.facade.rpc.RpcManager;
 import com.vraft.facade.rpc.RpcServer;
@@ -54,6 +56,10 @@ public class Bootstrap {
 
         SerializerMgr serializerMgr = new SerializeHolder();
         sysCtx.setSerializerMgr(serializerMgr);
+
+        RaftNodeMgr raftNodeMgr = new RaftNodeMgrImpl(sysCtx);
+        raftNodeMgr.init();
+        sysCtx.setRaftNodeMgr(raftNodeMgr);
 
         TimerService timerSvs = new TimerHolder(sysCtx);
         timerSvs.startup();

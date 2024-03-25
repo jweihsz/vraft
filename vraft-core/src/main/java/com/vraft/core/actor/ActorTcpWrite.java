@@ -21,15 +21,15 @@ import org.apache.logging.log4j.Logger;
  * @author jweihsz
  * @version 2024/2/21 14:23
  **/
-public class ActorWriteChannel implements ActorProcessor<RpcCmd> {
-    private final static Logger logger = LogManager.getLogger(ActorWriteChannel.class);
+public class ActorTcpWrite implements ActorProcessor<RpcCmd> {
+    private final static Logger logger = LogManager.getLogger(ActorTcpWrite.class);
 
     private final int maxNum = 512;
     private final SystemCtx sysCtx;
     private final Map<Long, Long> maps;
     private final Consumer<Object> rspWatch;
 
-    public ActorWriteChannel(SystemCtx sysCtx) {
+    public ActorTcpWrite(SystemCtx sysCtx) {
         this.sysCtx = sysCtx;
         this.rspWatch = doRspWatch(sysCtx);
         this.maps = new ConcurrentHashMap<>();
@@ -61,7 +61,7 @@ public class ActorWriteChannel implements ActorProcessor<RpcCmd> {
     }
 
     @Override
-    public long actorId(long extId) {
+    public long actorId(long extId, long subId) {
         Long actorId = maps.get(extId);
         if (actorId != null) {return actorId;}
         UidService id = sysCtx.getUidSvs();

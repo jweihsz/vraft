@@ -111,10 +111,11 @@ public class RpcInitializer {
             final RpcManager rpcMgr = sysCtx.getRpcMgr();
             final ByteBuf bf = (ByteBuf)msg;
             try {
+                long nodeId = RpcCommon.getNodeId(bf);
                 long groupId = RpcCommon.getGroupId(bf);
-                actor.dispatchRaftGroup(groupId, bf.retain());
-                long userId = rpcMgr.getUserId(ctx.channel());
-                RpcCommon.setGroupId(bf, userId);
+                actor.dispatchRaftGroup(groupId, nodeId, bf.retain());
+                //long userId = rpcMgr.getUserId(ctx.channel());
+                //RpcCommon.setGroupId(bf, userId);
             } catch (Exception ex) {
                 ex.printStackTrace();
             } finally {bf.release();}

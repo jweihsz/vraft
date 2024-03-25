@@ -2,6 +2,7 @@ package com.vraft.facade.system;
 
 import com.vraft.facade.actor.ActorService;
 import com.vraft.facade.config.ConfigServer;
+import com.vraft.facade.raft.node.RaftNodeMgr;
 import com.vraft.facade.rpc.RpcClient;
 import com.vraft.facade.rpc.RpcManager;
 import com.vraft.facade.rpc.RpcServer;
@@ -23,5 +24,6 @@ public class SystemCtx {
     private RpcClient rpcClient;
     private TimerService timerSvs;
     private ActorService actorSvs;
+    private RaftNodeMgr raftNodeMgr;
     private SerializerMgr serializerMgr;
 }

@@ -21,7 +21,7 @@ public class RaftVoteRespHandler implements RpcProcessor {
     }
 
     @Override
-    public void handle(long connectId, long msgId,
+    public void handle(long connectId, long groupId, long nodeId, long msgId,
         byte[] header, byte[] body, boolean hasNext) throws Exception {
         logger.info("RaftVoteRespHandler");
     }

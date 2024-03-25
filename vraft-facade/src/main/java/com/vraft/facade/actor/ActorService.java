@@ -12,6 +12,6 @@ public interface ActorService {
 
     boolean dispatchWriteChMsg(long userId, RpcCmd cmd);
 
-    boolean dispatchRaftGroup(long groupId, Object bf);
+    boolean dispatchRaftGroup(long groupId, long nodeId, Object bf);
 
 }

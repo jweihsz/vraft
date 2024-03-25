@@ -19,7 +19,7 @@ import org.apache.logging.log4j.Logger;
  * @author jweihsz
  * @version 2024/3/20 20:41
  **/
-public class PeersManager implements PeersService {
+public class PeersMgrImpl implements PeersService {
     private final static Logger logger = LogManager.getLogger(PeersService.class);
 
     private final SystemCtx sysCtx;
@@ -27,7 +27,7 @@ public class PeersManager implements PeersService {
     private final PeersEntry snapshotEntry;
     private final LinkedList<PeersEntry> hisEntry;
 
-    public PeersManager(SystemCtx sysCtx) {
+    public PeersMgrImpl(SystemCtx sysCtx) {
         this.sysCtx = sysCtx;
         this.curEntry = PeersEntry.build();
         this.hisEntry = new LinkedList<>();

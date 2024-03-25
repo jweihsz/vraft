@@ -26,23 +26,23 @@ public class ActorHolder implements ActorService {
         this.sysCtx = sysCtx;
         this.actorGroup = new ActorRaftGroup(sysCtx);
         this.actorRsp = new ActorAsyncResp(sysCtx);
-        this.actorWch = new ActorWriteChannel(sysCtx);
+        this.actorWch = new ActorTcpWrite(sysCtx);
         this.actor = new ActorSystem(ThreadPool.ACTOR);
     }
 
     @Override
     public boolean dispatchWriteChMsg(long userId, RpcCmd cmd) {
-        return actor.dispatch(userId, cmd, actorWch);
+        return actor.dispatch(userId, -1L, cmd, actorWch);
     }
 
     @Override
     public boolean dispatchAsyncRsp(long userId, RpcCmd cmd) {
-        return actor.dispatch(userId, cmd, actorRsp);
+        return actor.dispatch(userId, -1L, cmd, actorRsp);
     }
 
     @Override
-    public boolean dispatchRaftGroup(long groupId, Object bf) {
-        return actor.dispatch(groupId, (ByteBuf)bf, actorGroup);
+    public boolean dispatchRaftGroup(long groupId, long nodeId, Object bf) {
+        return actor.dispatch(groupId, nodeId, (ByteBuf)bf, actorGroup);
     }
 
 }

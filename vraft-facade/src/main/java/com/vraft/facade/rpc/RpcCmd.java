@@ -16,6 +16,7 @@ public class RpcCmd {
     private long msgId;
     private long userId;
     private long groupId;
+    private long nodeId;
     private byte[] body;
     private byte[] header;
     private long timeout;
@@ -34,5 +35,7 @@ public class RpcCmd {
         this.header = null;
         this.callBack = null;
         this.timeout = -1L;
+        this.nodeId = -1L;
+        this.groupId = -1L;
     }
 }

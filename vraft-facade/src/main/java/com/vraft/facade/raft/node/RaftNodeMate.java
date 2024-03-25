@@ -11,9 +11,10 @@ public class RaftNodeMate {
     private long groupId;
     private long nodeId;
     private long lastTerm;
-    private long lastLogId;
+    private long lastIndex;
     private long leaderId;
     private long curTerm;
+    private long curIndex;
     private long lastLeaderHeat;
     private String srcIp;
     private RaftNodeStatus role;
