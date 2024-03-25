@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 import com.vraft.core.raft.elect.RaftElectBallot;
@@ -77,6 +78,9 @@ public class RaftNodeImpl implements RaftNode {
         mate.setRole(RaftNodeStatus.FOLLOWER);
         mate.setLastLeaderHeat(-1L);
         mate.setNodeId(MathUtil.address2long(mate.getSrcIp()));
+
+        long t = System.currentTimeMillis();
+        opts.setEpoch(new AtomicLong(t));
 
         PeersService peersSrv = new PeersMgrImpl(sysCtx);
         peersSrv.init();
@@ -261,7 +265,11 @@ public class RaftNodeImpl implements RaftNode {
         long nodeId = req.getNodeId();
         long groupId = req.getGroupId();
         RaftNode node = mgr.getNodeMate(groupId, nodeId);
-        res.setTerm(self.getLastTerm());
+        res.setEpoch(req.getEpoch());
+        res.setTerm(req.getLastTerm());
+        res.setIndex(req.getLastIndex());
+        res.setSrcTerm(self.getLastTerm());
+        res.setSrcIndex(self.getLastIndex());
         res.setGranted(false);
         res.setCode(Code.SUCCESS);
         if (node == null || !isActive()) {
@@ -287,11 +295,20 @@ public class RaftNodeImpl implements RaftNode {
         return self.getLastIndex() <= req.getLastIndex();
     }
 
+    private long nextEpoch() {
+        return opts.getEpoch().getAndIncrement();
+    }
+
+    private long getEpoch() {
+        return opts.getEpoch().get();
+    }
+
     private RaftVoteReq buildVoteReq(boolean isPre) {
         final RaftNodeMate self = opts.getSelf();
         RaftVoteReq req = null;
         req = getVoteReqObj();
         req.setPre(isPre);
+        req.setEpoch(nextEpoch());
         req.setCurTerm(self.getCurTerm());
         req.setLastIndex(self.getLastIndex());
         req.setLastTerm(self.getLastTerm());

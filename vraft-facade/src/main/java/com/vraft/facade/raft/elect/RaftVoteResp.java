@@ -8,7 +8,11 @@ import lombok.Data;
  **/
 @Data
 public class RaftVoteResp {
-    private long term;
-    private boolean granted;
     private int code;
+    private long term;
+    private long index;
+    private long epoch;
+    private long srcTerm;
+    private long srcIndex;
+    private boolean granted;
 }

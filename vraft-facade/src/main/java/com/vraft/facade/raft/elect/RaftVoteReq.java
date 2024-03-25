@@ -14,6 +14,7 @@ public class RaftVoteReq {
     private long curTerm;
     private long lastTerm;
     private long lastIndex;
+    private long epoch;
     private String srcIp;
 }
 

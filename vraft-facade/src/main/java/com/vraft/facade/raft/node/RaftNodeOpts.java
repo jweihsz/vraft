@@ -1,5 +1,7 @@
 package com.vraft.facade.raft.node;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 import com.vraft.facade.raft.fsm.FsmCallback;
 import com.vraft.facade.raft.peers.PeersService;
 import lombok.Data;
@@ -11,6 +13,7 @@ import lombok.Data;
 @Data
 public class RaftNodeOpts {
     private RaftNodeMate self;
+    private AtomicLong epoch;
     private FsmCallback fsmCallback;
     private int electTimeout = 1000;
     private int maxElectTimeout = 2000;
