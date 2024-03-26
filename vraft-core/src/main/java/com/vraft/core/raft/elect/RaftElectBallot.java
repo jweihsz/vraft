@@ -34,6 +34,30 @@ public class RaftElectBallot {
         oldPeers.forEach(c -> c.setRight(false));
     }
 
+    public void doGrant(long nodeId) {
+        for (Pair<Long, Boolean> p : curPeers) {
+            if (p.getLeft() != nodeId) {continue;}
+            if (!p.getRight()) {
+                p.setRight(true);
+                quorum -= 1;
+            }
+            break;
+        }
+        for (Pair<Long, Boolean> p : oldPeers) {
+            if (p.getLeft() != nodeId) {continue;}
+            if (!p.getRight()) {
+                p.setRight(true);
+                oldQuorum -= 1;
+            }
+            break;
+        }
+    }
+
+    public boolean isGranted() {
+        return this.quorum <= 0
+            && this.oldQuorum <= 0;
+    }
+
     private void checkReset(Map<Long, RaftNodeMate> cur,
         Map<Long, RaftNodeMate> old, boolean needRest) {
         if (!needRest) {return;}

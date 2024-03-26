@@ -256,6 +256,37 @@ public class RaftNodeImpl implements RaftNode {
     }
 
     @Override
+    public void processPreVoteResp(RaftVoteResp resp) throws Exception {
+        logger.info("pre vote resp:{}", resp);
+        if (!validPreVoteResp(resp)) {return;}
+        if (!doPreVoteGranted(resp.getSrcNodeId())) {return;}
+    }
+
+    private boolean validPreVoteResp(RaftVoteResp resp) {
+        if (resp.getCode() != Code.SUCCESS) {return false;}
+        final RaftNodeMate mate = opts.getSelf();
+        if (resp.getSrcTerm() > mate.getCurTerm()) {
+            doStepDown();
+            return false;
+        }
+        if (mate.getRole() != RaftNodeStatus.FOLLOWER) {
+            return false;
+        }
+        if (resp.getTerm() != mate.getCurTerm()) {
+            return false;
+        }
+        if (resp.getEpoch() != getEpoch()) {
+            return false;
+        }
+        return resp.isGranted();
+    }
+
+    private boolean doPreVoteGranted(long nodeId) {
+        ballot.doGrant(nodeId);
+        return ballot.isGranted();
+    }
+
+    @Override
     public byte[] processPreVoteReq(RaftVoteReq req) throws Exception {
         RaftVoteResp res = getVoteRespObj();
         final RaftNodeMate self = opts.getSelf();
@@ -264,7 +295,6 @@ public class RaftNodeImpl implements RaftNode {
         Serializer sz = szMgr.get(SerializerEnum.KRYO_ID);
         long nodeId = req.getNodeId();
         long groupId = req.getGroupId();
-        RaftNode node = mgr.getNodeMate(groupId, nodeId);
         res.setEpoch(req.getEpoch());
         res.setTerm(req.getLastTerm());
         res.setIndex(req.getLastIndex());
@@ -272,6 +302,9 @@ public class RaftNodeImpl implements RaftNode {
         res.setSrcIndex(self.getLastIndex());
         res.setGranted(false);
         res.setCode(Code.SUCCESS);
+        res.setSrcNodeId(self.getNodeId());
+        res.setSrcGroupId(self.getGroupId());
+        RaftNode node = mgr.getNodeMate(groupId, nodeId);
         if (node == null || !isActive()) {
             res.setCode(Code.RAFT_NOT_ACTIVE);
             return sz.serialize(res);
@@ -287,6 +320,10 @@ public class RaftNodeImpl implements RaftNode {
             res.setGranted(canGrantedVote(self, req));
         }
         return sz.serialize(res);
+    }
+
+    private void doStepDown() {
+
     }
 
     private boolean canGrantedVote(RaftNodeMate self, RaftVoteReq req) {

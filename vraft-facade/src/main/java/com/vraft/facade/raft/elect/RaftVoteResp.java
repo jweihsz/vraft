@@ -14,5 +14,7 @@ public class RaftVoteResp {
     private long epoch;
     private long srcTerm;
     private long srcIndex;
+    private long srcNodeId;
+    private long srcGroupId;
     private boolean granted;
 }
