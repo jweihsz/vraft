@@ -60,9 +60,11 @@ public class RaftNodeImpl implements RaftNode {
 
         SerializerMgr szMgr = sysCtx.getSerializerMgr();
         Serializer sz = szMgr.get(SerializerEnum.KRYO_ID);
-        sz.registerClz(Arrays.asList(RaftVoteReq.class,
-            byte[].class, RaftInnerCmd.class, RaftVoteResp.class));
-
+        sz.registerClz(Arrays.asList(
+            byte[].class,
+            RaftVoteReq.class,
+            RaftInnerCmd.class,
+            RaftVoteResp.class));
         sysCtx.getRaftNodeMgr().registerNode(this);
     }
 

@@ -147,10 +147,14 @@ public class RaftElectHolder implements RaftElectService {
             doStepDown();
             return false;
         }
-        return !((mate.getRole() != RaftNodeStatus.FOLLOWER
-            || resp.getTerm() != mate.getCurTerm()
-            || resp.getEpoch() != getEpoch()
-            || !resp.isGranted()));
+        if (mate.getRole() != RaftNodeStatus.FOLLOWER) {
+            return false;
+        }
+        if (resp.getTerm() != mate.getCurTerm()
+            || resp.getEpoch() != getEpoch()) {
+            return false;
+        }
+        return resp.isGranted();
     }
 
     private void doStepDown() {
@@ -266,7 +270,7 @@ public class RaftElectHolder implements RaftElectService {
 
     private long nextEpoch() {
         final RaftNodeOpts opts = node.getOpts();
-        return opts.getEpoch().getAndIncrement();
+        return opts.getEpoch().incrementAndGet();
     }
 
     private long getEpoch() {

@@ -34,7 +34,6 @@ public class RaftVoteReqHandler implements RpcProcessor {
         SerializerMgr szMgr = sysCtx.getSerializerMgr();
         Serializer sz = szMgr.get(SerializerEnum.KRYO_ID);
         RaftVoteReq req = sz.deserialize(body, RaftVoteReq.class);
-        logger.info("RaftVoteReq :{},hasNext:{}", req, hasNext);
         processPreVoteReq(req, groupId, nodeId, msgId);
     }
 

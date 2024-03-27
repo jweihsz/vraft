@@ -1,7 +1,5 @@
 package com.vraft.core.serialize;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Type;
 import java.util.HashSet;
 import java.util.List;
@@ -22,11 +20,8 @@ import org.apache.logging.log4j.Logger;
 public class KryoSerialize implements Serializer {
     private final static Logger logger = LogManager.getLogger(KryoSerialize.class);
 
-    private final int bSize = 524288; //512KB
     private final Set<Type> rs = new HashSet<>();
     private static final ThreadLocal<Kryo> TL = new ThreadLocal<>();
-    private static final ThreadLocal<Input> I = new ThreadLocal<>();
-    private static final ThreadLocal<Output> O = new ThreadLocal<>();
 
     public KryoSerialize() {}
 
@@ -38,24 +33,20 @@ public class KryoSerialize implements Serializer {
 
     @Override
     public byte[] serialize(Object obj) throws Exception {
-        ByteArrayOutputStream bao = null;
-        bao = new ByteArrayOutputStream();
-        Output output = getOutput();
-        output.setOutputStream(bao);
-        getKryo().writeClassAndObject(output, obj);
+        Output output = new Output(256, -1);
+        getKryo().writeObject(output, obj);
+        output.flush();
+        byte[] bytes = output.toBytes();
         output.close();
-        return bao.toByteArray();
+        return bytes;
     }
 
     @Override
     public <T> T deserialize(byte[] bytes, Class<T> cls) throws Exception {
-        ByteArrayInputStream bai = null;
-        Kryo kryo = getKryo();
-        bai = new ByteArrayInputStream(bytes);
-        Input input = getInput();
-        input.setInputStream(bai);
+        Input input = new Input(bytes);
+        T obj = getKryo().readObject(input, cls);
         input.close();
-        return cls.cast(kryo.readClassAndObject(input));
+        return obj;
     }
 
     @Override
@@ -75,22 +66,6 @@ public class KryoSerialize implements Serializer {
         register(kryo, rs);
         TL.set(kryo);
         return kryo;
-    }
-
-    private Input getInput() {
-        Input input = I.get();
-        if (input != null) {return input;}
-        input = new Input(bSize);
-        I.set(input);
-        return input;
-    }
-
-    private Output getOutput() {
-        Output output = O.get();
-        if (output != null) {return output;}
-        output = new Output(bSize, -1);
-        O.set(output);
-        return output;
     }
 
 }
