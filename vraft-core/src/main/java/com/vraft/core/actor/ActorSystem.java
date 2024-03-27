@@ -164,6 +164,8 @@ public class ActorSystem {
 
         public long getExtId() {return extId;}
 
+        public long getSubId() {return subId;}
+
         public long getActorId() {return actorId;}
 
         final boolean setAsScheduled() {

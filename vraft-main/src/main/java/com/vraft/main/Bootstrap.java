@@ -4,6 +4,7 @@ import java.util.concurrent.CountDownLatch;
 
 import com.vraft.core.actor.ActorHolder;
 import com.vraft.core.config.ConfigHolder;
+import com.vraft.core.raft.handler.RaftInnerCmdHandler;
 import com.vraft.core.raft.handler.RaftVoteReqHandler;
 import com.vraft.core.raft.handler.RaftVoteRespHandler;
 import com.vraft.core.raft.node.RaftNodeImpl;
@@ -68,6 +69,7 @@ public class Bootstrap {
         RpcManager rpcMgr = new RpcManagerImpl(sysCtx);
         rpcMgr.addProcessor(new RaftVoteReqHandler(sysCtx));
         rpcMgr.addProcessor(new RaftVoteRespHandler(sysCtx));
+        rpcMgr.addProcessor(new RaftInnerCmdHandler(sysCtx));
         rpcMgr.startup();
         sysCtx.setRpcMgr(rpcMgr);
 

@@ -2,6 +2,7 @@ package com.vraft.core.utils;
 
 import java.lang.reflect.Method;
 import java.util.Properties;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -14,6 +15,12 @@ public class OtherUtil {
     public static void sleep(long ms) {
         if (ms <= 0) {return;}
         try {Thread.sleep(ms);} catch (Exception ex) {}
+    }
+
+    public static int randomTimeout(
+        int timeoutMs, int maxTimeout) {
+        return ThreadLocalRandom.current()
+            .nextInt(timeoutMs, maxTimeout);
     }
 
     public static void props2Obj(Properties p, Object object) {

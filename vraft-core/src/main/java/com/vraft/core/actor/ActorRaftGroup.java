@@ -13,7 +13,6 @@ import com.vraft.facade.rpc.RpcProcessor;
 import com.vraft.facade.system.SystemCtx;
 import com.vraft.facade.uid.UidService;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -36,6 +35,7 @@ public class ActorRaftGroup implements ActorProcessor<ByteBuf> {
     @Override
     public void process(long deadline, Actor<ByteBuf> self) {
         final long groupId = self.getExtId();
+        final long nodeId = self.getSubId();
         List<ByteBuf> dataList = self.getDataList();
         do {
             ByteBuf obj = self.getQueue().poll();
@@ -44,7 +44,6 @@ public class ActorRaftGroup implements ActorProcessor<ByteBuf> {
             if (obj == null) {break;}
         } while (System.currentTimeMillis() < deadline);
         if (dataList.size() > 0) {processGroup(dataList);}
-
     }
 
     @Override
@@ -74,21 +73,22 @@ public class ActorRaftGroup implements ActorProcessor<ByteBuf> {
         dataList.clear();
     }
 
-    private void processByteBuf(ByteBuf bf, boolean hasNext) throws Exception {
-        final RpcManager rpcMgr = sysCtx.getRpcMgr();
-        final ByteBuf uid = RpcCommon.getRpcUid(bf);
-        RpcProcessor p = rpcMgr.getProcessor(uid);
-        if (p != null) {
+    private void processByteBuf(ByteBuf bf, boolean hasNext) {
+        try {
+            final RpcManager rpcMgr = sysCtx.getRpcMgr();
+            final ByteBuf uid = RpcCommon.getRpcUid(bf);
+            final RpcProcessor p = rpcMgr.getProcessor(uid);
+            if (p == null) {return;}
             long messageId = RpcCommon.getRpcSeq(bf);
             long connectId = RpcCommon.getGroupId(bf);
             long nodeId = RpcCommon.getNodeId(bf);
             long groupId = RpcCommon.getGroupId(bf);
             byte[] header = RpcCommon.getHeaderBytes(bf);
             byte[] body = RpcCommon.getBodyBytes(bf);
-            p.handle(-1L, groupId, nodeId, messageId, header, body, hasNext);
-        } else {
-            String err = new String(ByteBufUtil.getBytes(uid));
-            logger.info("fail processor  for uid:{}", err);
+            p.handle(-1L, groupId, nodeId,
+                messageId, header, body, hasNext);
+        } catch (Exception ex) {
+            ex.printStackTrace();
         }
     }
 }

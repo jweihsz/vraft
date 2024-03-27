@@ -360,6 +360,7 @@ public class RpcCommon {
     public static ByteBuf buildOneWayPkg(RpcCmd cmd) {
         return buildBasePkg(
             cmd.getType(),
+            false,
             cmd.getGroupId(),
             cmd.getNodeId(),
             cmd.getMsgId(),
@@ -371,9 +372,13 @@ public class RpcCommon {
     private static ByteBuf buildTwoWayPkg(SystemCtx ctx,
         Consumer<Object> apply, RpcCmd cmd) {
         ByteBuf bf = buildBasePkg(
-            cmd.getType(), cmd.getGroupId(),
-            cmd.getNodeId(), cmd.getMsgId(),
-            cmd.getUid(), cmd.getHeader(),
+            cmd.getType(),
+            false,
+            cmd.getGroupId(),
+            cmd.getNodeId(),
+            cmd.getMsgId(),
+            cmd.getUid(),
+            cmd.getHeader(),
             cmd.getBody());
         final RpcManager mgr = ctx.getRpcMgr();
         TimerService timer = ctx.getTimerSvs();
@@ -389,8 +394,11 @@ public class RpcCommon {
         }
     }
 
-    public static ByteBuf buildBasePkg(byte rq, long groupId,
-        long nodeId, long id, String uid, byte[] header, byte[] body) {
+    public static ByteBuf buildBasePkg(
+        byte rq, boolean isInner,
+        long groupId, long nodeId,
+        long id, String uid,
+        byte[] header, byte[] body) {
         int totalLen = RpcCommon.RPC_MATE_SIZE;
         byte[] bodyBuf, uidBuf, headerBuf;
         if (uid == null) {
@@ -412,12 +420,16 @@ public class RpcCommon {
             bodyBuf = body;
         }
         totalLen += bodyBuf.length;
-
-        byte[] mateArr = new byte[RpcCommon.RPC_MATE_SIZE + 6];
+        final int buffSize = isInner
+            ? RpcCommon.RPC_MATE_SIZE
+            : RpcCommon.RPC_MATE_SIZE + 6;
+        byte[] mateArr = new byte[buffSize];
         ByteBuf mate = Unpooled.wrappedBuffer(mateArr);
         mate.resetWriterIndex();
-        mate.writeShort(RpcConsts.RPC_MAGIC);
-        mate.writeInt(totalLen);
+        if (!isInner) {
+            mate.writeShort(RpcConsts.RPC_MAGIC);
+            mate.writeInt(totalLen);
+        }
         mate.writeByte(RpcConsts.RPC_VERSION);
         mate.writeByte(rq);
         mate.writeByte(0x00);
