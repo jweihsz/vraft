@@ -27,7 +27,7 @@ public class RaftNodeMgrImpl implements RaftNodeMgr {
 
     @Override
     public boolean registerNode(RaftNode node) {
-        RaftNodeMate mate = node.getOpts().getSelf();
+        RaftNodeMate mate = node.getNodeCtx().getSelf();
         if (mate == null) {return false;}
         if (mate.getNodeId() <= 0 || mate.getGroupId() <= 0) {return false;}
         group.computeIfAbsent(mate.getGroupId(), k -> new ConcurrentHashMap<>());

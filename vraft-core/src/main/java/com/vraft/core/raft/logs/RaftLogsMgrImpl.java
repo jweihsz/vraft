@@ -1,7 +1,7 @@
 package com.vraft.core.raft.logs;
 
 import com.vraft.facade.raft.logs.RaftLogsMgr;
-import com.vraft.facade.raft.logs.RaftVoteMate;
+import com.vraft.facade.raft.logs.RaftVoteFor;
 import com.vraft.facade.system.SystemCtx;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -16,13 +16,13 @@ public class RaftLogsMgrImpl implements RaftLogsMgr {
     private final SystemCtx sysCtx;
     private volatile long lastLogTerm;
     private volatile long lastLogIndex;
-    private final RaftVoteMate voteMate;
+    private final RaftVoteFor voteMate;
 
     public RaftLogsMgrImpl(SystemCtx sysCtx) {
         this.sysCtx = sysCtx;
         this.lastLogTerm = 0L;
         this.lastLogIndex = 0L;
-        this.voteMate = new RaftVoteMate();
+        this.voteMate = new RaftVoteFor();
     }
 
     @Override
@@ -50,7 +50,7 @@ public class RaftLogsMgrImpl implements RaftLogsMgr {
     }
 
     @Override
-    public RaftVoteMate getVoteMate() {
+    public RaftVoteFor getVoteMate() {
         return voteMate;
     }
 

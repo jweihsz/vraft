@@ -8,7 +8,7 @@ import com.vraft.facade.common.LifeCycle;
  **/
 public interface RaftNode extends LifeCycle {
 
-    RaftNodeOpts getOpts();
+    RaftNodeCtx getNodeCtx();
 
     void checkReplicator(long nodeId);
 }

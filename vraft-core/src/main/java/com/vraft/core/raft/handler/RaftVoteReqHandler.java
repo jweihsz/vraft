@@ -46,7 +46,7 @@ public class RaftVoteReqHandler implements RpcProcessor {
         RaftNode node = mgr.getNodeMate(groupId, nodeId);
         if (node == null) {return;}
         RaftElectMgr raftElect = null;
-        raftElect = node.getOpts().getElectMgr();
+        raftElect = node.getNodeCtx().getElectMgr();
         RpcClient client = sysCtx.getRpcClient();
         byte[] body = req.isPre()
             ? raftElect.processPreVoteReq(req)

@@ -16,7 +16,7 @@ public interface RaftLogsMgr extends LifeCycle {
 
     void setLastLogTerm(long lastLogTerm);
 
-    RaftVoteMate getVoteMate();
+    RaftVoteFor getVoteMate();
 
     void setVoteMate(long term, long nodeId);
 }

@@ -13,7 +13,7 @@ import lombok.Data;
  * @version 2024/3/11 11:17
  **/
 @Data
-public class RaftNodeOpts {
+public class RaftNodeCtx {
     private RaftNodeMate self;
     private AtomicLong epoch;
     private int electTimeout;

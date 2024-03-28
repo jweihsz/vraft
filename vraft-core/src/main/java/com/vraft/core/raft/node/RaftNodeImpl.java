@@ -13,8 +13,8 @@ import com.vraft.facade.raft.elect.RaftVoteReq;
 import com.vraft.facade.raft.elect.RaftVoteResp;
 import com.vraft.facade.raft.fsm.FsmCallback;
 import com.vraft.facade.raft.node.RaftNode;
+import com.vraft.facade.raft.node.RaftNodeCtx;
 import com.vraft.facade.raft.node.RaftNodeMate;
-import com.vraft.facade.raft.node.RaftNodeOpts;
 import com.vraft.facade.raft.node.RaftNodeStatus;
 import com.vraft.facade.serializer.Serializer;
 import com.vraft.facade.serializer.SerializerEnum;
@@ -31,12 +31,12 @@ public class RaftNodeImpl implements RaftNode {
     private final static Logger logger = LogManager.getLogger(RaftNodeImpl.class);
 
     private final SystemCtx sysCtx;
-    private final RaftNodeOpts opts;
+    private final RaftNodeCtx ctx;
 
     public RaftNodeImpl(SystemCtx sysCtx, RaftNodeMate self) {
         this.sysCtx = sysCtx;
-        this.opts = new RaftNodeOpts();
-        this.opts.setSelf(self);
+        this.ctx = new RaftNodeCtx();
+        this.ctx.setSelf(self);
     }
 
     @Override
@@ -49,30 +49,30 @@ public class RaftNodeImpl implements RaftNode {
         RequireUtil.nonNull(sysCtx.getRpcClient());
         RequireUtil.nonNull(sysCtx.getTimerSvs());
 
-        RaftNodeMate self = opts.getSelf();
+        RaftNodeMate self = ctx.getSelf();
         RequireUtil.nonNull(self);
         RequireUtil.isTrue(self.getGroupId() > 0);
         RequireUtil.nonNull(self.getSrcIp());
 
-        opts.setElectTimeout(1000);
-        opts.setMaxElectTimeout(2000);
+        ctx.setElectTimeout(1000);
+        ctx.setMaxElectTimeout(2000);
 
-        RaftNodeMate mate = opts.getSelf();
+        RaftNodeMate mate = ctx.getSelf();
         mate.setRole(RaftNodeStatus.FOLLOWER);
         mate.setLastLeaderHeat(-1L);
         mate.setNodeId(MathUtil.address2long(mate.getSrcIp()));
 
         long t = System.currentTimeMillis();
-        opts.setEpoch(new AtomicLong(t));
+        ctx.setEpoch(new AtomicLong(t));
 
-        opts.setPeersMgr(new RaftPeersMgrImpl(sysCtx));
-        opts.getPeersMgr().init();
+        ctx.setPeersMgr(new RaftPeersMgrImpl(sysCtx));
+        ctx.getPeersMgr().init();
 
-        opts.setLogsMgr(new RaftLogsMgrImpl(sysCtx));
-        opts.getLogsMgr().init();
+        ctx.setLogsMgr(new RaftLogsMgrImpl(sysCtx));
+        ctx.getLogsMgr().init();
 
-        opts.setElectMgr(new RaftElectMgrImpl(sysCtx, this));
-        opts.getElectMgr().init();
+        ctx.setElectMgr(new RaftElectMgrImpl(sysCtx, this));
+        ctx.getElectMgr().init();
 
         initSerializer();
 
@@ -81,11 +81,11 @@ public class RaftNodeImpl implements RaftNode {
 
     @Override
     public void startup() throws Exception {
-        opts.getElectMgr().startVote(true);
+        ctx.getElectMgr().startVote(true);
     }
 
     @Override
-    public RaftNodeOpts getOpts() {return opts;}
+    public RaftNodeCtx getNodeCtx() {return ctx;}
 
     private void initSerializer() {
         SerializerMgr szMgr = sysCtx.getSerializerMgr();
@@ -98,15 +98,15 @@ public class RaftNodeImpl implements RaftNode {
 
     @Override
     public void checkReplicator(long nodeId) {
-        final RaftNodeMate mate = opts.getSelf();
+        final RaftNodeMate mate = ctx.getSelf();
         if (mate.getRole() != RaftNodeStatus.LEADER) {return;}
         //TODO
     }
 
     private void resetLeaderId(long leaderId) {
-        RaftNodeMate self = opts.getSelf();
+        RaftNodeMate self = ctx.getSelf();
         long oldLeaderId = self.getLeaderId();
-        FsmCallback fsm = opts.getFsmCallback();
+        FsmCallback fsm = ctx.getFsmCallback();
         self.setLeaderId(leaderId);
         if (fsm == null) {return;}
         if (oldLeaderId > 0 && leaderId < 0) {

@@ -51,7 +51,7 @@ public class RaftInnerCmdHandler implements RpcProcessor {
         RaftNode node = mgr.getNodeMate(groupId, nodeId);
         if (node == null) {return;}
         RaftElectMgr raftElect = null;
-        raftElect = node.getOpts().getElectMgr();
+        raftElect = node.getNodeCtx().getElectMgr();
         raftElect.doPreVote();
     }
 
@@ -61,7 +61,7 @@ public class RaftInnerCmdHandler implements RpcProcessor {
         RaftNode node = mgr.getNodeMate(groupId, nodeId);
         if (node == null) {return;}
         RaftElectMgr raftElect = null;
-        raftElect = node.getOpts().getElectMgr();
+        raftElect = node.getNodeCtx().getElectMgr();
         raftElect.doForVote();
     }
 

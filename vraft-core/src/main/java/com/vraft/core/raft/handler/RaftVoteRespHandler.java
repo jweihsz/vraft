@@ -46,7 +46,7 @@ public class RaftVoteRespHandler implements RpcProcessor {
         RaftNode node = mgr.getNodeMate(groupId, nodeId);
         if (node == null) {return;}
         RaftElectMgr raftElect = null;
-        raftElect = node.getOpts().getElectMgr();
+        raftElect = node.getNodeCtx().getElectMgr();
         if (resp.isPre()) {
             raftElect.processPreVoteResp(resp);
         } else {
