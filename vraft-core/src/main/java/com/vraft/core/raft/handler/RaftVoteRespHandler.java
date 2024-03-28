@@ -29,7 +29,6 @@ public class RaftVoteRespHandler implements RpcProcessor {
     @Override
     public void handle(long connectId, long groupId, long nodeId, long msgId,
         byte[] header, byte[] body, boolean hasNext) throws Exception {
-        logger.info("RaftVoteRespHandler");
         SerializerMgr szMgr = sysCtx.getSerializerMgr();
         Serializer sz = szMgr.get(SerializerEnum.KRYO_ID);
         RaftVoteResp resp = sz.deserialize(body, RaftVoteResp.class);

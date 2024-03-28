@@ -15,6 +15,7 @@ import com.vraft.facade.raft.elect.RaftInnerCmd;
 import com.vraft.facade.raft.elect.RaftVoteReq;
 import com.vraft.facade.raft.elect.RaftVoteResp;
 import com.vraft.facade.raft.logs.RaftLogsMgr;
+import com.vraft.facade.raft.logs.RaftVoteMate;
 import com.vraft.facade.raft.node.RaftNode;
 import com.vraft.facade.raft.node.RaftNodeCmd;
 import com.vraft.facade.raft.node.RaftNodeMate;
@@ -56,9 +57,7 @@ public class RaftElectMgrImpl implements RaftElectMgr {
     }
 
     @Override
-    public void init() throws Exception {
-
-    }
+    public void init() throws Exception { }
 
     @Override
     public void startVote(Boolean isPre) {
@@ -73,13 +72,15 @@ public class RaftElectMgrImpl implements RaftElectMgr {
     @Override
     public void doForVote() throws Exception {
         final RaftNodeOpts opts = node.getOpts();
+        RaftLogsMgr logsMgr = opts.getLogsMgr();
         RaftPeersMgr raftPeers = opts.getPeersMgr();
-        final long selfNodeId = opts.getSelf().getNodeId();
         final RaftNodeMate self = opts.getSelf();
+        final long selfNodeId = self.getNodeId();
         if (self.getRole() != RaftNodeStatus.CANDIDATE) {return;}
         if (!isInMember(selfNodeId)) {return;}
         ballot.init(raftPeers.getCurEntry(), true);
         ballot.doGrant(opts.getSelf().getNodeId());
+        logsMgr.setVoteMate(self.getCurTerm(), selfNodeId);
         sendVoteReq(buildVoteReq(false));
         startVote(false);
     }
@@ -102,8 +103,24 @@ public class RaftElectMgrImpl implements RaftElectMgr {
     @Override
     public void processPreVoteResp(RaftVoteResp resp) throws Exception {
         logger.info("pre vote resp:{}", resp);
-        if (!validPreVoteResp(resp)) {return;}
-        if (!doPreVoteGranted(resp.getRespNodeId())) {return;}
+        if (resp.getCode() != Code.SUCCESS) {return;}
+        final RaftNodeOpts opts = node.getOpts();
+        final RaftLogsMgr logsMgr = opts.getLogsMgr();
+        final RaftNodeMate mate = opts.getSelf();
+        if (resp.getRespLastLogTerm() > logsMgr.getLastLogTerm()) {
+            // doStepDown();
+            return;
+        }
+        if (mate.getRole() != RaftNodeStatus.FOLLOWER) {
+            return;
+        }
+        if (resp.getTerm() != mate.getCurTerm() + 1
+            || resp.getEpoch() != getEpoch()) {
+            return;
+        }
+        if (!resp.isGranted()) {return;}
+        ballot.doGrant(resp.getRespNodeId());
+        if (!ballot.isGranted()) {return;}
         nextEpoch();
         electSelf();
     }
@@ -111,10 +128,28 @@ public class RaftElectMgrImpl implements RaftElectMgr {
     @Override
     public void processForVoteResp(RaftVoteResp resp) throws Exception {
         logger.info("for vote resp:{}", resp);
-        if (!validPreVoteResp(resp)) {return;}
-        if (!doPreVoteGranted(resp.getRespNodeId())) {return;}
+        if (resp.getCode() != Code.SUCCESS) {return;}
+        final RaftNodeOpts opts = node.getOpts();
+        final RaftLogsMgr logsMgr = opts.getLogsMgr();
+        final RaftNodeMate mate = opts.getSelf();
+        if (resp.getRespLastLogTerm() > logsMgr.getLastLogTerm()) {
+            // doStepDown(resp.getTerm());
+            return;
+        }
+        if (mate.getRole() != RaftNodeStatus.CANDIDATE) {
+            return;
+        }
+        if (resp.getTerm() != mate.getCurTerm()
+            || resp.getEpoch() != getEpoch()) {
+            return;
+        }
+        if (!resp.isGranted()) {return;}
+        ballot.doGrant(resp.getRespNodeId());
+        if (!ballot.isGranted()) {return;}
         nextEpoch();
-        electSelf();
+        mate.setRole(RaftNodeStatus.LEARNER);
+        logger.info("OK!");
+
     }
 
     @Override
@@ -128,29 +163,36 @@ public class RaftElectMgrImpl implements RaftElectMgr {
         RaftVoteResp res = ObjectsPool.getVoteRespObj();
         res.setPre(false);
         res.setGranted(false);
+        res.setTerm(req.getCurTerm());
         res.setCode(Code.SUCCESS);
         res.setEpoch(req.getEpoch());
-        res.setReqLastLogTerm(req.getLastLogTerm());
-        res.setReqLastLogIndex(req.getLastLogIndex());
         res.setRespNodeId(self.getNodeId());
         res.setRespGroupId(self.getGroupId());
+        res.setReqLastLogTerm(req.getLastLogTerm());
+        res.setReqLastLogIndex(req.getLastLogIndex());
         res.setRespLastLogTerm(logsMgr.getLastLogTerm());
         res.setRespLastLogIndex(logsMgr.getLastLogIndex());
-        RaftNode node = mgr.getNodeMate(
-            self.getGroupId(), self.getNodeId());
+        RaftNode node = mgr.getNodeMate(self.getGroupId(), self.getNodeId());
         if (node == null || !isActive()) {
             res.setCode(Code.RAFT_NOT_ACTIVE);
             return sz.serialize(res);
-        } else if (!isInMember(req.getNodeId())) {
+        }
+        if (!isInMember(req.getNodeId())) {
             res.setCode(Code.RAFT_NOT_MEMBER);
-        } else if (isLeaderValid()) {
-            res.setCode(Code.RAFT_VALID_LEADER);
-        } else if (req.getCurTerm() < self.getCurTerm()) {
-            res.setCode(Code.RAFT_TERM_SMALLER);
-            node.checkReplicator(req.getNodeId());
-        } else {
-            node.checkReplicator(req.getNodeId());
-            res.setGranted(canGrantedVote(req));
+            return sz.serialize(res);
+        }
+        if (req.getCurTerm() >= self.getCurTerm()) {
+            if (req.getCurTerm() > self.getCurTerm()) {
+                doStepDown(req.getCurTerm());
+            }
+        }
+        RaftVoteMate mate = logsMgr.getVoteMate();
+        if (mate.getNodeId() <= 0 && canGrantedVote(req)) {
+            logsMgr.setVoteMate(req.getCurTerm(), req.getNodeId());
+        }
+        if (req.getCurTerm() == self.getCurTerm()
+            && mate.getNodeId() == req.getNodeId()) {
+            res.setGranted(true);
         }
         return sz.serialize(res);
     }
@@ -209,32 +251,14 @@ public class RaftElectMgrImpl implements RaftElectMgr {
         return status.ordinal() < RaftNodeStatus.ERROR.ordinal();
     }
 
-    private boolean doPreVoteGranted(long nodeId) {
-        ballot.doGrant(nodeId);
-        return ballot.isGranted();
-    }
-
-    private boolean validPreVoteResp(RaftVoteResp resp) {
-        if (resp.getCode() != Code.SUCCESS) {return false;}
+    private void doStepDown(long term) {
         final RaftNodeOpts opts = node.getOpts();
-        final RaftLogsMgr logsMgr = opts.getLogsMgr();
         final RaftNodeMate mate = opts.getSelf();
-        if (resp.getRespLastLogTerm() > logsMgr.getLastLogTerm()) {
-            doStepDown();
-            return false;
+        if (term > mate.getCurTerm()) {
+            mate.setCurTerm(term);
+            // voteNodeId = -1L;
+            // voteTerm = -1L;
         }
-        if (mate.getRole() != RaftNodeStatus.FOLLOWER) {
-            return false;
-        }
-        if (resp.getTerm() != mate.getCurTerm() + 1
-            || resp.getEpoch() != getEpoch()) {
-            return false;
-        }
-        return resp.isGranted();
-    }
-
-    private void doStepDown() {
-
     }
 
     private Consumer<Object> buildFuncApply() {
@@ -279,7 +303,6 @@ public class RaftElectMgrImpl implements RaftElectMgr {
         Set<Long> filters = null;
         PeersEntry e = opts.getPeersMgr().getCurEntry();
         if (!e.getOldConf().isEmpty()) {filters = new HashSet<>();}
-
         Map<Long, RaftNodeMate> peers = e.getCurConf().getPeers();
         for (Map.Entry<Long, RaftNodeMate> entry : peers.entrySet()) {
             if (entry.getKey() == self.getNodeId()) {continue;}
@@ -309,8 +332,11 @@ public class RaftElectMgrImpl implements RaftElectMgr {
         final RaftNodeMate self = opts.getSelf();
         final String uid = RaftInnerCmd.class.getName();
         RaftInnerCmd pkg = ObjectsPool.getInnerCmdObj();
-        pkg.setCmd(isPre ? RaftNodeCmd.CMD_DO_PRE_VOTE
-            : RaftNodeCmd.CMD_DO_FOR_VOTE);
+        if (isPre) {
+            pkg.setCmd(RaftNodeCmd.CMD_DO_PRE_VOTE);
+        } else {
+            pkg.setCmd(RaftNodeCmd.CMD_DO_FOR_VOTE);
+        }
         return RpcCommon.buildBasePkg(
             RpcConsts.RPC_ONE_WAY, true,
             self.getGroupId(), self.getNodeId(),
