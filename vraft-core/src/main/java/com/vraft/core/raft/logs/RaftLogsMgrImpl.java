@@ -42,7 +42,9 @@ public class RaftLogsMgrImpl implements RaftLogsMgr {
     }
 
     @Override
-    public long getLastLogTerm() {return lastLogTerm;}
+    public long getLastLogTerm() {
+        return lastLogTerm;
+    }
 
     @Override
     public void setLastLogTerm(long lastLogTerm) {

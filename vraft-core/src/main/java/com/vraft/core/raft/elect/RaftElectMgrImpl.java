@@ -60,6 +60,24 @@ public class RaftElectMgrImpl implements RaftElectMgr {
     public void init() throws Exception { }
 
     @Override
+    public void doStepDown(long term) {
+        if (!isActive()) {return;}
+        RaftNodeCtx ctx = node.getNodeCtx();
+        RaftLogsMgr logsMgr = ctx.getLogsMgr();
+        RaftPeersMgr peersMgr = ctx.getPeersMgr();
+        RaftNodeMate mate = ctx.getSelf();
+        mate.setRole(RaftNodeStatus.FOLLOWER);
+        mate.setLastLeaderHeat(OtherUtil.getSysMs());
+        if (term > mate.getCurTerm()) {
+            mate.setCurTerm(term);
+            logsMgr.setVoteMate(term, -1L);
+        }
+        if (!peersMgr.isLearner(mate.getNodeId())) {
+            startVote(true);
+        }
+    }
+
+    @Override
     public void startVote(Boolean isPre) {
         final RaftNodeCtx ctx = node.getNodeCtx();
         TimerService timer = sysCtx.getTimerSvs();
@@ -259,16 +277,6 @@ public class RaftElectMgrImpl implements RaftElectMgr {
         if (mate == null) {return false;}
         final RaftNodeStatus status = mate.getRole();
         return status.ordinal() < RaftNodeStatus.ERROR.ordinal();
-    }
-
-    private void doStepDown(long term) {
-        final RaftNodeCtx ctx = node.getNodeCtx();
-        final RaftNodeMate mate = ctx.getSelf();
-        if (term > mate.getCurTerm()) {
-            mate.setCurTerm(term);
-            // voteNodeId = -1L;
-            // voteTerm = -1L;
-        }
     }
 
     private Consumer<Object> buildFuncApply() {

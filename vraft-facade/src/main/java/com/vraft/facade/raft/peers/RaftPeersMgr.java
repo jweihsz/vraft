@@ -14,5 +14,7 @@ public interface RaftPeersMgr extends LifeCycle {
 
     default PeersEntry getSnapshotEntry() {return null;}
 
+    default boolean isLearner(long nodeId) {return false;}
+
     default LinkedList<PeersEntry> getHisEntry() {return null;}
 }

@@ -50,6 +50,12 @@ public class RaftPeersMgrImpl implements RaftPeersMgr {
     @Override
     public LinkedList<PeersEntry> getHisEntry() {return hisEntry;}
 
+    @Override
+    public boolean isLearner(long nodeId) {
+        final PeersCfg curConf = curEntry.getCurConf();
+        return curConf.getLearners().containsKey(nodeId);
+    }
+
     private void parseCurCfg(PeersCfg cur, RaftNodeCfg cfg) {
         RequireUtil.nonNull(cfg.getRaftSelf());
         RequireUtil.nonNull(cfg.getRaftPeers());
