@@ -10,6 +10,6 @@ import lombok.Data;
 public class RaftNodeCmd {
     private RaftNodeCmd() {}
 
-    public static int CMD_DO_PRE_VOTE = 0x01;
-    public static int CMD_DO_FOR_VOTE = 0x02;
+    public static final int CMD_DO_PRE_VOTE = 0x01;
+    public static final int CMD_DO_FOR_VOTE = 0x02;
 }

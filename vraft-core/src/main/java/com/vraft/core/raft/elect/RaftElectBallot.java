@@ -58,8 +58,6 @@ public class RaftElectBallot {
     }
 
     public boolean isGranted() {
-        logger.info("quorum={},oldQuorum={}"
-            , quorum, oldQuorum);
         return this.quorum <= 0
             && this.oldQuorum <= 0;
     }

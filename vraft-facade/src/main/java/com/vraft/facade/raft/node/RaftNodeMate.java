@@ -30,5 +30,5 @@ public class RaftNodeMate {
         this.srcIp = srcIp;
         this.nodeId = nodeId;
     }
-
+    
 }

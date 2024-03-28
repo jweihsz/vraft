@@ -8,9 +8,15 @@ public interface RaftElectService {
 
     void startVote(Boolean isPre);
 
-    void doVote(boolean isPre) throws Exception;
+    void doPreVote() throws Exception;
+
+    void doForVote() throws Exception;
 
     void processPreVoteResp(RaftVoteResp resp) throws Exception;
+
+    void processForVoteResp(RaftVoteResp resp) throws Exception;
+
+    byte[] processForVoteReq(RaftVoteReq req) throws Exception;
 
     byte[] processPreVoteReq(RaftVoteReq req) throws Exception;
 }

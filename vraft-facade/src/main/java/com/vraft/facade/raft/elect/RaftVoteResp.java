@@ -16,5 +16,6 @@ public class RaftVoteResp {
     private long srcIndex;
     private long srcNodeId;
     private long srcGroupId;
+    private boolean isPre;
     private boolean granted;
 }

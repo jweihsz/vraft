@@ -33,7 +33,7 @@ public class RaftVoteRespHandler implements RpcProcessor {
         SerializerMgr szMgr = sysCtx.getSerializerMgr();
         Serializer sz = szMgr.get(SerializerEnum.KRYO_ID);
         RaftVoteResp resp = sz.deserialize(body, RaftVoteResp.class);
-        processPreVoteResp(resp, groupId, nodeId, msgId);
+        processVoteResp(resp, groupId, nodeId, msgId);
     }
 
     @Override
@@ -41,13 +41,17 @@ public class RaftVoteRespHandler implements RpcProcessor {
         return RaftVoteResp.class.getName();
     }
 
-    private void processPreVoteResp(RaftVoteResp resp,
+    private void processVoteResp(RaftVoteResp resp,
         long groupId, long nodeId, long msgId) throws Exception {
         final RaftNodeMgr mgr = sysCtx.getRaftNodeMgr();
         RaftNode node = mgr.getNodeMate(groupId, nodeId);
         if (node == null) {return;}
         RaftElectService raftElect = null;
         raftElect = node.getOpts().getRaftElect();
-        raftElect.processPreVoteResp(resp);
+        if (resp.isPre()) {
+            raftElect.processPreVoteResp(resp);
+        } else {
+            raftElect.processForVoteResp(resp);
+        }
     }
 }

@@ -34,13 +34,13 @@ public class RaftVoteReqHandler implements RpcProcessor {
         SerializerMgr szMgr = sysCtx.getSerializerMgr();
         Serializer sz = szMgr.get(SerializerEnum.KRYO_ID);
         RaftVoteReq req = sz.deserialize(body, RaftVoteReq.class);
-        processPreVoteReq(req, groupId, nodeId, msgId);
+        processVoteReq(req, groupId, nodeId, msgId);
     }
 
     @Override
     public String uid() {return RaftVoteReq.class.getName();}
 
-    private void processPreVoteReq(RaftVoteReq req,
+    private void processVoteReq(RaftVoteReq req,
         long groupId, long nodeId, long msgId) throws Exception {
         final RaftNodeMgr mgr = sysCtx.getRaftNodeMgr();
         RaftNode node = mgr.getNodeMate(groupId, nodeId);
@@ -48,7 +48,9 @@ public class RaftVoteReqHandler implements RpcProcessor {
         RaftElectService raftElect = null;
         raftElect = node.getOpts().getRaftElect();
         RpcClient client = sysCtx.getRpcClient();
-        byte[] body = raftElect.processPreVoteReq(req);
+        byte[] body = req.isPre()
+            ? raftElect.processPreVoteReq(req)
+            : raftElect.processForVoteReq(req);
         long userId = client.doConnect(req.getSrcIp());
         if (userId < 0) {return;}
         String uid = RaftVoteResp.class.getName();

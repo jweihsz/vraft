@@ -36,9 +36,12 @@ public class RaftInnerCmdHandler implements RpcProcessor {
         throws Exception {
         SerializerMgr szMgr = sysCtx.getSerializerMgr();
         Serializer sz = szMgr.get(SerializerEnum.KRYO_ID);
-        RaftInnerCmd cmd = sz.deserialize(body, RaftInnerCmd.class);
-        if (cmd.getCmd() == RaftNodeCmd.CMD_DO_PRE_VOTE) {
+        RaftInnerCmd pkg = sz.deserialize(body, RaftInnerCmd.class);
+        final int cmd = pkg.getCmd();
+        if (RaftNodeCmd.CMD_DO_PRE_VOTE == cmd) {
             processPreVoteCmd(groupId, nodeId);
+        } else if (RaftNodeCmd.CMD_DO_FOR_VOTE == cmd) {
+            processForVoteCmd(groupId, nodeId);
         }
     }
 
@@ -49,7 +52,17 @@ public class RaftInnerCmdHandler implements RpcProcessor {
         if (node == null) {return;}
         RaftElectService raftElect = null;
         raftElect = node.getOpts().getRaftElect();
-        raftElect.doVote(true);
+        raftElect.doPreVote();
+    }
+
+    private void processForVoteCmd(long groupId,
+        long nodeId) throws Exception {
+        final RaftNodeMgr mgr = sysCtx.getRaftNodeMgr();
+        RaftNode node = mgr.getNodeMate(groupId, nodeId);
+        if (node == null) {return;}
+        RaftElectService raftElect = null;
+        raftElect = node.getOpts().getRaftElect();
+        raftElect.doForVote();
     }
 
 }
