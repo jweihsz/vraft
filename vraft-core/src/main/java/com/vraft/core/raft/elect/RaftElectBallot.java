@@ -2,12 +2,14 @@ package com.vraft.core.raft.elect;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import com.vraft.facade.common.Pair;
-import com.vraft.facade.raft.node.RaftNodeMate;
+import com.vraft.facade.raft.peers.PeersCfg;
+import com.vraft.facade.raft.peers.PeersEntry;
 import com.vraft.facade.system.SystemCtx;
 import lombok.Data;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * @author jweihsz
@@ -15,6 +17,7 @@ import lombok.Data;
  **/
 @Data
 public class RaftElectBallot {
+    private final static Logger logger = LogManager.getLogger(RaftElectBallot.class);
 
     private final SystemCtx sysCtx;
     private int quorum, oldQuorum;
@@ -27,11 +30,12 @@ public class RaftElectBallot {
         this.oldPeers = new ArrayList<>();
     }
 
-    public void init(Map<Long, RaftNodeMate> cur,
-        Map<Long, RaftNodeMate> old, boolean needRest) {
-        checkReset(cur, old, needRest);
+    public void init(PeersEntry entry, boolean init) {
+        if (init) {reInit(entry.getCurConf(), entry.getOldConf());}
         curPeers.forEach(c -> c.setRight(false));
         oldPeers.forEach(c -> c.setRight(false));
+        quorum = curPeers.isEmpty() ? 0 : curPeers.size() / 2 + 1;
+        oldQuorum = oldPeers.isEmpty() ? 0 : oldPeers.size() / 2 + 1;
     }
 
     public void doGrant(long nodeId) {
@@ -54,19 +58,21 @@ public class RaftElectBallot {
     }
 
     public boolean isGranted() {
+        logger.info("quorum={},oldQuorum={}"
+            , quorum, oldQuorum);
         return this.quorum <= 0
             && this.oldQuorum <= 0;
     }
 
-    private void checkReset(Map<Long, RaftNodeMate> cur,
-        Map<Long, RaftNodeMate> old, boolean needRest) {
-        if (!needRest) {return;}
+    private void reInit(PeersCfg cur, PeersCfg old) {
         curPeers.clear();
         oldPeers.clear();
-        cur.keySet().forEach(c -> curPeers.add(new Pair<>(c, false)));
-        old.keySet().forEach(c -> oldPeers.add(new Pair<>(c, false)));
-        quorum = cur.size() / 2 + 1;
-        oldQuorum = old.size() / 2 + 1;
+        cur.getPeers().keySet().forEach(
+            c -> curPeers.add(new Pair<>(c, false))
+        );
+        old.getPeers().keySet().forEach(
+            c -> oldPeers.add(new Pair<>(c, false))
+        );
     }
 
 }

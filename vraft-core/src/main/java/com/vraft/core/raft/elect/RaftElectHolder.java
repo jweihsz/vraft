@@ -21,6 +21,7 @@ import com.vraft.facade.raft.node.RaftNodeMgr;
 import com.vraft.facade.raft.node.RaftNodeOpts;
 import com.vraft.facade.raft.node.RaftNodeStatus;
 import com.vraft.facade.raft.peers.PeersEntry;
+import com.vraft.facade.raft.peers.RaftPeersService;
 import com.vraft.facade.rpc.RpcClient;
 import com.vraft.facade.rpc.RpcConsts;
 import com.vraft.facade.serializer.Serializer;
@@ -66,10 +67,13 @@ public class RaftElectHolder implements RaftElectService {
     @Override
     public void doVote(boolean isPre) throws Exception {
         final RaftNodeOpts opts = node.getOpts();
+        RaftPeersService raftPeers = opts.getRaftPeers();
         long selfNodeId = opts.getSelf().getNodeId();
         if (!isPreVoteRole()) {return;}
         if (!isInMember(selfNodeId)) {return;}
         if (isLeaderValid()) {return;}
+        ballot.init(raftPeers.getCurEntry(), true);
+        ballot.doGrant(opts.getSelf().getNodeId());
         sendVoteReq(buildVoteReq(isPre));
         startVote(isPre);
     }
@@ -90,8 +94,6 @@ public class RaftElectHolder implements RaftElectService {
         SerializerMgr szMgr = sysCtx.getSerializerMgr();
         Serializer sz = szMgr.get(SerializerEnum.KRYO_ID);
         RaftVoteResp res = ObjectsPool.getVoteRespObj();
-        long nodeId = req.getNodeId();
-        long groupId = req.getGroupId();
         res.setEpoch(req.getEpoch());
         res.setTerm(req.getLastTerm());
         res.setIndex(req.getLastIndex());
