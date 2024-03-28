@@ -1,6 +1,6 @@
 package com.vraft.core.raft.handler;
 
-import com.vraft.facade.raft.elect.RaftElectService;
+import com.vraft.facade.raft.elect.RaftElectMgr;
 import com.vraft.facade.raft.elect.RaftVoteResp;
 import com.vraft.facade.raft.node.RaftNode;
 import com.vraft.facade.raft.node.RaftNodeMgr;
@@ -46,8 +46,8 @@ public class RaftVoteRespHandler implements RpcProcessor {
         final RaftNodeMgr mgr = sysCtx.getRaftNodeMgr();
         RaftNode node = mgr.getNodeMate(groupId, nodeId);
         if (node == null) {return;}
-        RaftElectService raftElect = null;
-        raftElect = node.getOpts().getRaftElect();
+        RaftElectMgr raftElect = null;
+        raftElect = node.getOpts().getElectMgr();
         if (resp.isPre()) {
             raftElect.processPreVoteResp(resp);
         } else {

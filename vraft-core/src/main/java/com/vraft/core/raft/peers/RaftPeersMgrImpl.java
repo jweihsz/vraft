@@ -10,7 +10,7 @@ import com.vraft.facade.config.RaftNodeCfg;
 import com.vraft.facade.raft.node.RaftNodeMate;
 import com.vraft.facade.raft.peers.PeersCfg;
 import com.vraft.facade.raft.peers.PeersEntry;
-import com.vraft.facade.raft.peers.RaftPeersService;
+import com.vraft.facade.raft.peers.RaftPeersMgr;
 import com.vraft.facade.system.SystemCtx;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -19,8 +19,8 @@ import org.apache.logging.log4j.Logger;
  * @author jweihsz
  * @version 2024/3/20 20:41
  **/
-public class RaftPeersMgrImpl implements RaftPeersService {
-    private final static Logger logger = LogManager.getLogger(RaftPeersService.class);
+public class RaftPeersMgrImpl implements RaftPeersMgr {
+    private final static Logger logger = LogManager.getLogger(RaftPeersMgr.class);
 
     private final SystemCtx sysCtx;
     private final PeersEntry curEntry;

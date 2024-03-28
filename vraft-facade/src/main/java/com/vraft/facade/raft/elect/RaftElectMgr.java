@@ -1,10 +1,12 @@
 package com.vraft.facade.raft.elect;
 
+import com.vraft.facade.common.LifeCycle;
+
 /**
  * @author jweihsz
  * @version 2024/3/27 09:50
  **/
-public interface RaftElectService {
+public interface RaftElectMgr extends LifeCycle {
 
     void startVote(Boolean isPre);
 

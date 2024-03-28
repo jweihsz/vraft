@@ -3,7 +3,8 @@ package com.vraft.core.raft.node;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.vraft.core.raft.elect.RaftElectHolder;
+import com.vraft.core.raft.elect.RaftElectMgrImpl;
+import com.vraft.core.raft.logs.RaftLogsMgrImpl;
 import com.vraft.core.raft.peers.RaftPeersMgrImpl;
 import com.vraft.core.utils.MathUtil;
 import com.vraft.core.utils.RequireUtil;
@@ -43,8 +44,19 @@ public class RaftNodeImpl implements RaftNode {
 
     @Override
     public void init() throws Exception {
-        validBase(sysCtx);
-        validSelf(opts.getSelf());
+        RequireUtil.nonNull(sysCtx);
+        RequireUtil.nonNull(sysCtx.getRpcSrv());
+        RequireUtil.nonNull(sysCtx.getRpcClient());
+        RequireUtil.nonNull(sysCtx.getTimerSvs());
+
+        RaftNodeMate self = opts.getSelf();
+        RequireUtil.nonNull(self);
+        RequireUtil.isTrue(self.getGroupId() > 0);
+        RequireUtil.nonNull(self.getSrcIp());
+
+        opts.setElectTimeout(1000);
+        opts.setMaxElectTimeout(2000);
+
         RaftNodeMate mate = opts.getSelf();
         mate.setRole(RaftNodeStatus.FOLLOWER);
         mate.setLastLeaderHeat(-1L);
@@ -53,40 +65,35 @@ public class RaftNodeImpl implements RaftNode {
         long t = System.currentTimeMillis();
         opts.setEpoch(new AtomicLong(t));
 
-        opts.setRaftPeers(new RaftPeersMgrImpl(sysCtx));
-        opts.getRaftPeers().init();
+        opts.setPeersMgr(new RaftPeersMgrImpl(sysCtx));
+        opts.getPeersMgr().init();
 
-        opts.setRaftElect(new RaftElectHolder(sysCtx, this));
+        opts.setLogsMgr(new RaftLogsMgrImpl(sysCtx));
+        opts.getLogsMgr().init();
 
-        SerializerMgr szMgr = sysCtx.getSerializerMgr();
-        Serializer sz = szMgr.get(SerializerEnum.KRYO_ID);
-        sz.registerClz(Arrays.asList(
-            byte[].class,
-            RaftVoteReq.class,
-            RaftInnerCmd.class,
-            RaftVoteResp.class));
+        opts.setElectMgr(new RaftElectMgrImpl(sysCtx, this));
+        opts.getElectMgr().init();
+
+        initSerializer();
+
         sysCtx.getRaftNodeMgr().registerNode(this);
     }
 
     @Override
     public void startup() throws Exception {
-        opts.getRaftElect().startVote(true);
+        opts.getElectMgr().startVote(true);
     }
 
     @Override
     public RaftNodeOpts getOpts() {return opts;}
 
-    public void validSelf(RaftNodeMate mate) {
-        RequireUtil.nonNull(mate);
-        RequireUtil.isTrue(mate.getGroupId() > 0);
-        RequireUtil.nonNull(mate.getSrcIp());
-    }
-
-    private void validBase(SystemCtx sysCtx) {
-        RequireUtil.nonNull(sysCtx);
-        RequireUtil.nonNull(sysCtx.getRpcSrv());
-        RequireUtil.nonNull(sysCtx.getRpcClient());
-        RequireUtil.nonNull(sysCtx.getTimerSvs());
+    private void initSerializer() {
+        SerializerMgr szMgr = sysCtx.getSerializerMgr();
+        Serializer sz = szMgr.get(SerializerEnum.KRYO_ID);
+        sz.registerClz(Arrays.asList(
+            byte[].class, RaftVoteReq.class,
+            RaftInnerCmd.class, RaftVoteResp.class)
+        );
     }
 
     @Override

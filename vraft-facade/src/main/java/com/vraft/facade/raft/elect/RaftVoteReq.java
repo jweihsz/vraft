@@ -12,9 +12,9 @@ public class RaftVoteReq {
     private long groupId;
     private long nodeId;
     private long curTerm;
-    private long lastTerm;
-    private long lastIndex;
     private long epoch;
     private String srcIp;
+    private long lastLogTerm;
+    private long lastLogIndex;
 }
 

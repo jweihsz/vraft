@@ -8,7 +8,7 @@ import com.vraft.facade.common.LifeCycle;
  * @author jweihsz
  * @version 2024/3/20 21:18
  **/
-public interface RaftPeersService extends LifeCycle {
+public interface RaftPeersMgr extends LifeCycle {
 
     default PeersEntry getCurEntry() {return null;}
 

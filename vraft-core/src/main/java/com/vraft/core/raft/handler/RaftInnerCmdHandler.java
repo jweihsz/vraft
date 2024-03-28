@@ -1,6 +1,6 @@
 package com.vraft.core.raft.handler;
 
-import com.vraft.facade.raft.elect.RaftElectService;
+import com.vraft.facade.raft.elect.RaftElectMgr;
 import com.vraft.facade.raft.elect.RaftInnerCmd;
 import com.vraft.facade.raft.node.RaftNode;
 import com.vraft.facade.raft.node.RaftNodeCmd;
@@ -50,8 +50,8 @@ public class RaftInnerCmdHandler implements RpcProcessor {
         final RaftNodeMgr mgr = sysCtx.getRaftNodeMgr();
         RaftNode node = mgr.getNodeMate(groupId, nodeId);
         if (node == null) {return;}
-        RaftElectService raftElect = null;
-        raftElect = node.getOpts().getRaftElect();
+        RaftElectMgr raftElect = null;
+        raftElect = node.getOpts().getElectMgr();
         raftElect.doPreVote();
     }
 
@@ -60,8 +60,8 @@ public class RaftInnerCmdHandler implements RpcProcessor {
         final RaftNodeMgr mgr = sysCtx.getRaftNodeMgr();
         RaftNode node = mgr.getNodeMate(groupId, nodeId);
         if (node == null) {return;}
-        RaftElectService raftElect = null;
-        raftElect = node.getOpts().getRaftElect();
+        RaftElectMgr raftElect = null;
+        raftElect = node.getOpts().getElectMgr();
         raftElect.doForVote();
     }
 

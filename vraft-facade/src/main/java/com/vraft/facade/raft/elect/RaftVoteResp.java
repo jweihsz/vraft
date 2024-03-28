@@ -9,13 +9,14 @@ import lombok.Data;
 @Data
 public class RaftVoteResp {
     private int code;
-    private long term;
-    private long index;
     private long epoch;
-    private long srcTerm;
-    private long srcIndex;
-    private long srcNodeId;
-    private long srcGroupId;
+    private long term;
     private boolean isPre;
     private boolean granted;
+    private long respNodeId;
+    private long respGroupId;
+    private long reqLastLogTerm;
+    private long reqLastLogIndex;
+    private long respLastLogTerm;
+    private long respLastLogIndex;
 }
