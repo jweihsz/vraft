@@ -2,6 +2,8 @@ package com.vraft.core.raft.peers;
 
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 import com.vraft.core.utils.MathUtil;
 import com.vraft.core.utils.RequireUtil;
@@ -23,6 +25,7 @@ public class RaftPeersMgrImpl implements RaftPeersMgr {
     private final static Logger logger = LogManager.getLogger(RaftPeersMgr.class);
 
     private final SystemCtx sysCtx;
+    private final Set<Long> nodeIds;
     private final PeersEntry curEntry;
     private final PeersEntry snapshotEntry;
     private final LinkedList<PeersEntry> hisEntry;
@@ -32,6 +35,7 @@ public class RaftPeersMgrImpl implements RaftPeersMgr {
         this.curEntry = PeersEntry.build();
         this.hisEntry = new LinkedList<>();
         this.snapshotEntry = PeersEntry.build();
+        this.nodeIds = new CopyOnWriteArraySet<>();
     }
 
     @Override
@@ -40,6 +44,9 @@ public class RaftPeersMgrImpl implements RaftPeersMgr {
         final RaftNodeCfg cfg = cfgSrv.getRaftNodeCfg();
         parseCurCfg(curEntry.getCurConf(), cfg);
     }
+
+    @Override
+    public Set<Long> getAllNodeIds() {return nodeIds;}
 
     @Override
     public PeersEntry getCurEntry() {return curEntry;}
@@ -62,10 +69,12 @@ public class RaftPeersMgrImpl implements RaftPeersMgr {
         Map<Long, RaftNodeMate> peers = cur.getPeers();
         RaftNodeMate mate = buildMate(cfg.getRaftSelf());
         peers.put(mate.getNodeId(), mate);
+        nodeIds.add(mate.getNodeId());
         String[] ss = cfg.getRaftPeers().split(",");
         for (String s : ss) {
             mate = buildMate(s);
             peers.put(mate.getNodeId(), mate);
+            nodeIds.add(mate.getNodeId());
         }
     }
 

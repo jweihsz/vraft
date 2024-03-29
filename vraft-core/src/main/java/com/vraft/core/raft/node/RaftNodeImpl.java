@@ -11,7 +11,6 @@ import com.vraft.core.utils.RequireUtil;
 import com.vraft.facade.raft.elect.RaftInnerCmd;
 import com.vraft.facade.raft.elect.RaftVoteReq;
 import com.vraft.facade.raft.elect.RaftVoteResp;
-import com.vraft.facade.raft.fsm.FsmCallback;
 import com.vraft.facade.raft.node.RaftNode;
 import com.vraft.facade.raft.node.RaftNodeCtx;
 import com.vraft.facade.raft.node.RaftNodeMate;
@@ -99,19 +98,6 @@ public class RaftNodeImpl implements RaftNode {
         RaftNodeMate mate = nodeCtx.getSelf();
         if (mate.getRole() != RaftNodeStatus.LEADER) {return;}
         //TODO
-    }
-
-    private void resetLeaderId(long leaderId) {
-        RaftNodeMate self = nodeCtx.getSelf();
-        long oldLeaderId = self.getLeaderId();
-        FsmCallback fsm = nodeCtx.getFsmCallback();
-        self.setLeaderId(leaderId);
-        if (fsm == null) {return;}
-        if (oldLeaderId > 0 && leaderId < 0) {
-            fsm.onStopFollowing(oldLeaderId, self.getCurTerm());
-        } else if (oldLeaderId < 0 && leaderId > 0) {
-            fsm.onStartFollowing(leaderId, self.getCurTerm());
-        }
     }
 
 }

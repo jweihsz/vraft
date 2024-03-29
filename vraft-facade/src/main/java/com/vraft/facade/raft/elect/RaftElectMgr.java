@@ -8,8 +8,6 @@ import com.vraft.facade.common.LifeCycle;
  **/
 public interface RaftElectMgr extends LifeCycle {
 
-    void startVote(Boolean isPre);
-
     void doStepDown(long term);
 
     void doPreVote() throws Exception;

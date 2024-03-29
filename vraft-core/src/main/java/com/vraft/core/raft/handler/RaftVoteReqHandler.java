@@ -4,6 +4,7 @@ import com.vraft.facade.raft.elect.RaftElectMgr;
 import com.vraft.facade.raft.elect.RaftVoteReq;
 import com.vraft.facade.raft.elect.RaftVoteResp;
 import com.vraft.facade.raft.node.RaftNode;
+import com.vraft.facade.raft.node.RaftNodeCtx;
 import com.vraft.facade.raft.node.RaftNodeMgr;
 import com.vraft.facade.rpc.RpcClient;
 import com.vraft.facade.rpc.RpcProcessor;
@@ -42,15 +43,18 @@ public class RaftVoteReqHandler implements RpcProcessor {
 
     private void processVoteReq(RaftVoteReq req,
         long groupId, long nodeId, long msgId) throws Exception {
+        byte[] body = null;
         final RaftNodeMgr mgr = sysCtx.getRaftNodeMgr();
         RaftNode node = mgr.getNodeMate(groupId, nodeId);
         if (node == null) {return;}
-        RaftElectMgr raftElect = null;
-        raftElect = node.getNodeCtx().getElectMgr();
+        RaftNodeCtx nodeCtx = node.getNodeCtx();
+        RaftElectMgr electMgr = nodeCtx.getElectMgr();
         RpcClient client = sysCtx.getRpcClient();
-        byte[] body = req.isPre()
-            ? raftElect.processPreVoteReq(req)
-            : raftElect.processForVoteReq(req);
+        if (req.isPre()) {
+            body = electMgr.processPreVoteReq(req);
+        } else {
+            body = electMgr.processForVoteReq(req);
+        }
         long userId = client.doConnect(req.getSrcIp());
         if (userId < 0) {return;}
         String uid = RaftVoteResp.class.getName();

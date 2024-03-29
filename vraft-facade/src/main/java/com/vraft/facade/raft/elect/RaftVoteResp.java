@@ -13,6 +13,7 @@ public class RaftVoteResp {
     private long term;
     private boolean isPre;
     private boolean granted;
+    private long respTerm;
     private long respNodeId;
     private long respGroupId;
     private long reqLastLogTerm;
