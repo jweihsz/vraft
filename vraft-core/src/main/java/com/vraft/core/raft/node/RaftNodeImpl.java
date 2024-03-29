@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import com.vraft.core.raft.elect.RaftElectMgrImpl;
 import com.vraft.core.raft.logs.RaftLogsMgrImpl;
+import com.vraft.core.raft.logs.RaftReplicatorImpl;
 import com.vraft.core.raft.peers.RaftPeersMgrImpl;
 import com.vraft.core.utils.MathUtil;
 import com.vraft.core.utils.RequireUtil;
@@ -72,6 +73,9 @@ public class RaftNodeImpl implements RaftNode {
 
         nodeCtx.setElectMgr(new RaftElectMgrImpl(sysCtx, this));
         nodeCtx.getElectMgr().init();
+
+        nodeCtx.setReplicator(new RaftReplicatorImpl(sysCtx, this));
+        nodeCtx.getReplicator().init();
 
         SerializerMgr szMgr = sysCtx.getSerializerMgr();
         Serializer sz = szMgr.get(SerializerEnum.KRYO_ID);

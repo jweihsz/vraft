@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import com.vraft.facade.raft.elect.RaftElectMgr;
 import com.vraft.facade.raft.fsm.FsmCallback;
 import com.vraft.facade.raft.logs.RaftLogsMgr;
+import com.vraft.facade.raft.logs.RaftReplicator;
 import com.vraft.facade.raft.peers.RaftPeersMgr;
 import lombok.Data;
 
@@ -22,4 +23,5 @@ public class RaftNodeCtx {
     private RaftPeersMgr peersMgr;
     private RaftElectMgr electMgr;
     private FsmCallback fsmCallback;
+    private RaftReplicator replicator;
 }

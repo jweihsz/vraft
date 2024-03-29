@@ -143,8 +143,16 @@ public class RaftElectMgrImpl implements RaftElectMgr {
         ballot.doGrant(resp.getRespNodeId());
         if (!ballot.isGranted()) {return;}
         nextEpoch();
+        becomeLeader();
+    }
+
+    private void becomeLeader() {
+        RaftNodeCtx nodeCtx = node.getNodeCtx();
+        RaftNodeMate self = nodeCtx.getSelf();
         self.setRole(RaftNodeStatus.LEADER);
         logger.info("OK!");
+        self.setLeaderId(self.getNodeId());
+
     }
 
     @Override
