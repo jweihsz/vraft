@@ -14,6 +14,8 @@ import com.vraft.facade.raft.elect.RaftVoteReq;
 import com.vraft.facade.raft.elect.RaftVoteResp;
 import com.vraft.facade.raft.fsm.FsmCallback;
 import com.vraft.facade.raft.logs.RaftLogsMgr;
+import com.vraft.facade.raft.logs.RaftReplicator;
+import com.vraft.facade.raft.logs.RaftReplicatorType;
 import com.vraft.facade.raft.logs.RaftVoteFor;
 import com.vraft.facade.raft.node.RaftNode;
 import com.vraft.facade.raft.node.RaftNodeCmd;
@@ -150,9 +152,23 @@ public class RaftElectMgrImpl implements RaftElectMgr {
         RaftNodeCtx nodeCtx = node.getNodeCtx();
         RaftNodeMate self = nodeCtx.getSelf();
         self.setRole(RaftNodeStatus.LEADER);
-        logger.info("OK!");
+        logger.info("becomeLeader ok!");
         self.setLeaderId(self.getNodeId());
-
+        RaftReplicatorType type = null;
+        RaftPeersMgr peersMgr = nodeCtx.getPeersMgr();
+        final PeersEntry e = peersMgr.getCurEntry();
+        final Set<Long> nodeIds = peersMgr.getAllNodeIds();
+        if (nodeIds == null || nodeIds.isEmpty()) {return;}
+        RaftReplicator replicator = nodeCtx.getReplicator();
+        for (Long nodeId : nodeIds) {
+            if (nodeId == self.getNodeId()) {continue;}
+            RaftNodeMate mate = e.getNode(nodeId);
+            if (mate == null) {continue;}
+            type = mate.getRole() == RaftNodeStatus.LEARNER
+                ? RaftReplicatorType.Learner
+                : RaftReplicatorType.Follower;
+            replicator.addReplicator(mate.getNodeId(), type, true);
+        }
     }
 
     @Override

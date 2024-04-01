@@ -24,4 +24,15 @@ public class PeersEntry {
         if (mate != null) {return mate;}
         return oldConf.getPeers().get(nodeId);
     }
+
+    public RaftNodeMate getNodeFromLeaner(long nodeId) {
+        RaftNodeMate mate = curConf.getLearners().get(nodeId);
+        if (mate != null) {return mate;}
+        return oldConf.getLearners().get(nodeId);
+    }
+
+    public RaftNodeMate getNode(long nodeId) {
+        RaftNodeMate mate = getNodeFromPeer(nodeId);
+        return mate != null ? mate : getNodeFromLeaner(nodeId);
+    }
 }
