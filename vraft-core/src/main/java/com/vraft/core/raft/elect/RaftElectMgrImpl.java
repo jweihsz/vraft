@@ -149,17 +149,18 @@ public class RaftElectMgrImpl implements RaftElectMgr {
     }
 
     private void becomeLeader() {
+        logger.info("becomeLeader ok!");
         RaftNodeCtx nodeCtx = node.getNodeCtx();
         RaftNodeMate self = nodeCtx.getSelf();
         self.setRole(RaftNodeStatus.LEADER);
-        logger.info("becomeLeader ok!");
         self.setLeaderId(self.getNodeId());
         RaftReplicatorType type = null;
         RaftPeersMgr peersMgr = nodeCtx.getPeersMgr();
-        final PeersEntry e = peersMgr.getCurEntry();
-        final Set<Long> nodeIds = peersMgr.getAllNodeIds();
+        PeersEntry e = peersMgr.getCurEntry();
+        Set<Long> nodeIds = peersMgr.getAllNodeIds();
         if (nodeIds == null || nodeIds.isEmpty()) {return;}
         RaftReplicator replicator = nodeCtx.getReplicator();
+        replicator.resetTerm(self.getCurTerm());
         for (Long nodeId : nodeIds) {
             if (nodeId == self.getNodeId()) {continue;}
             RaftNodeMate mate = e.getNode(nodeId);
