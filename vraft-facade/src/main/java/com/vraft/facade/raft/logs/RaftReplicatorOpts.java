@@ -1,5 +1,6 @@
 package com.vraft.facade.raft.logs;
 
+import com.vraft.facade.raft.node.RaftNode;
 import lombok.Data;
 
 /**
@@ -8,5 +9,9 @@ import lombok.Data;
  **/
 @Data
 public class RaftReplicatorOpts {
+    private RaftNode node;
     private long term;
+    private long nextSendLogIndex;
+    private long lastRpcSendTimestamp;
+    private long dynamicHeartBeatTimeoutMs;
 }

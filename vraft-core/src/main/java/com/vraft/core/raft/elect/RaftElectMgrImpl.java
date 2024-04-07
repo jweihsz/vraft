@@ -156,7 +156,7 @@ public class RaftElectMgrImpl implements RaftElectMgr {
         self.setLeaderId(self.getNodeId());
         RaftReplicatorType type = null;
         RaftPeersMgr peersMgr = nodeCtx.getPeersMgr();
-        PeersEntry e = peersMgr.getCurEntry();
+        final PeersEntry e = peersMgr.getCurEntry();
         Set<Long> nodeIds = peersMgr.getAllNodeIds();
         if (nodeIds == null || nodeIds.isEmpty()) {return;}
         RaftReplicator replicator = nodeCtx.getReplicator();
