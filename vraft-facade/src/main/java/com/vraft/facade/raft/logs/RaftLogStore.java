@@ -6,5 +6,5 @@ import com.vraft.facade.common.LifeCycle;
  * @author jweihsz
  * @version 2024/4/6 17:28
  **/
-public interface RaftLogsStore extends LifeCycle {
+public interface RaftLogStore extends LifeCycle {
 }

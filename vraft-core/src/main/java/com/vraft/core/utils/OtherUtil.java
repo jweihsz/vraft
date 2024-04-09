@@ -1,6 +1,9 @@
 package com.vraft.core.utils;
 
 import java.lang.reflect.Method;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Properties;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -85,6 +88,12 @@ public class OtherUtil {
             }
         }
         return sb.toString();
+    }
+
+    public static void newDir(String dir) throws Exception {
+        if (dir == null || dir.isEmpty()) {return;}
+        final Path path = Paths.get(dir);
+        Files.createDirectories(path);
     }
 
     public static long getSysMs() {
