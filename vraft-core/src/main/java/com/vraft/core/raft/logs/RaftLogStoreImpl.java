@@ -1,10 +1,11 @@
 package com.vraft.core.raft.logs;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.vraft.core.utils.RequireUtil;
+import com.vraft.core.utils.OtherUtil;
 import com.vraft.facade.raft.logs.RaftLogOpts;
 import com.vraft.facade.raft.logs.RaftLogStore;
 import org.apache.logging.log4j.LogManager;
@@ -47,16 +48,14 @@ public class RaftLogStoreImpl implements RaftLogStore {
     private final static Logger logger = LogManager.getLogger(RaftLogStoreImpl.class);
 
     private RocksDB db;
-    private String dbPath;
-    private boolean readOnly;
-
+    private DBOptions dbOpt;
+    private RaftLogOpts logOpt;
     private ReadOptions readOptions;
     private WriteOptions writeOptions;
-    private DBOptions dbOpts;
-    private RaftLogOpts logOpts;
-    private volatile boolean loaded;
-    private volatile boolean closed;
-    private ColumnFamilyHandle defaultCFHandle;
+
+    private final byte[] CFG_COLUMN_FAMILY;
+    private ColumnFamilyHandle confHandle;
+    private ColumnFamilyHandle defaultHandle;
     private final List<ColumnFamilyOptions> cfOptions;
 
     static {
@@ -64,14 +63,16 @@ public class RaftLogStoreImpl implements RaftLogStore {
     }
 
     public RaftLogStoreImpl(RaftLogOpts logOpts) {
-        this.logOpts = logOpts;
+        this.logOpt = logOpts;
         this.cfOptions = new ArrayList<>();
+        this.CFG_COLUMN_FAMILY = "config".getBytes(StandardCharsets.UTF_8);
     }
 
     @Override
     public void init() throws Exception {
-        final String path = logOpts.getPath();
-        dbOpts = createConfigDBOptions(path);
+        String path = logOpt.getPath();
+        OtherUtil.newDir(path);
+        dbOpt = createConfigDBOptions(path);
 
         writeOptions = new WriteOptions();
         writeOptions.setSync(false);
@@ -82,11 +83,25 @@ public class RaftLogStoreImpl implements RaftLogStore {
         readOptions.setPrefixSameAsStart(true);
         readOptions.setTotalOrderSeek(false);
         readOptions.setTailing(false);
+
+        ColumnFamilyOptions opt = createConfigOptions();
+        List<ColumnFamilyDescriptor> desc = buildFamilyDesc(opt);
+        List<ColumnFamilyHandle> handles = new ArrayList<>();
+        db = RocksDB.open(dbOpt, logOpt.getPath(), desc, handles);
+        db.getEnv().setBackgroundThreads(8, Priority.HIGH);
+        db.getEnv().setBackgroundThreads(8, Priority.LOW);
+
+        confHandle = handles.get(0);
+        defaultHandle = handles.get(1);
+        cfOptions.add(opt);
     }
 
-    // public long getTerm(long groupId, long index) {
-
-    // }
+    private List<ColumnFamilyDescriptor> buildFamilyDesc(ColumnFamilyOptions opt) {
+        final List<ColumnFamilyDescriptor> res = new ArrayList<>();
+        res.add(new ColumnFamilyDescriptor(CFG_COLUMN_FAMILY, opt));
+        res.add(new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, opt));
+        return res;
+    }
 
     private void put(ColumnFamilyHandle cfHandle, WriteOptions writeOptions,
         byte[] keyBytes, int keyLen, byte[] valueBytes, int valueLen)
@@ -136,14 +151,6 @@ public class RaftLogStoreImpl implements RaftLogStore {
         this.db.deleteRange(cfHandle, writeOptions, startKey, endKey);
     }
 
-    private void open(List<ColumnFamilyDescriptor> cfDescriptors,
-        List<ColumnFamilyHandle> cfHandles) throws RocksDBException {
-        this.db = open(this.dbPath, readOnly, this.dbOpts, cfHandles, cfDescriptors);
-        this.db.getEnv().setBackgroundThreads(8, Priority.HIGH);
-        this.db.getEnv().setBackgroundThreads(8, Priority.LOW);
-        RequireUtil.nonNull(db);
-    }
-
     private RocksDB open(String dbPath, boolean readOnly,
         DBOptions options, List<ColumnFamilyHandle> cfHandles,
         List<ColumnFamilyDescriptor> cfDescriptors) throws RocksDBException {
@@ -156,7 +163,6 @@ public class RaftLogStoreImpl implements RaftLogStore {
 
     public synchronized void shutdown() {
         try {
-            if (!this.loaded) {return;}
             final FlushOptions flushOptions = new FlushOptions();
             flushOptions.setWaitForFlush(true);
             try {
@@ -168,10 +174,10 @@ public class RaftLogStoreImpl implements RaftLogStore {
             this.db.pauseBackgroundWork();
             //The close order is matter.
             //1. close column family handles
-
-            this.defaultCFHandle.close();
+            this.confHandle.close();
+            this.defaultHandle.close();
             //2. close column family options.
-            for (final ColumnFamilyOptions opt : this.cfOptions) {
+            for (ColumnFamilyOptions opt : this.cfOptions) {
                 opt.close();
             }
             //3. close options
@@ -181,12 +187,12 @@ public class RaftLogStoreImpl implements RaftLogStore {
             if (this.readOptions != null) {
                 this.readOptions.close();
             }
-            if (this.dbOpts != null) {
-                this.dbOpts.close();
+            if (this.dbOpt != null) {
+                this.dbOpt.close();
             }
 
             //4. close db.
-            if (db != null && !this.readOnly) {
+            if (db != null) {
                 this.db.syncWal();
             }
             if (db != null) {
@@ -197,25 +203,27 @@ public class RaftLogStoreImpl implements RaftLogStore {
             this.db = null;
             this.readOptions = null;
             this.writeOptions = null;
-            this.dbOpts = null;
-            this.loaded = false;
+            this.dbOpt = null;
         } catch (Exception ex) {
             ex.printStackTrace();
         }
     }
 
-    private void flush(final FlushOptions flushOptions) throws Exception {
-        if (!this.loaded || closed) {return;}
-        if (this.readOnly || db == null) {return;}
+    private void flush(FlushOptions flushOptions) throws Exception {
+        if (db == null) {return;}
         this.db.flush(flushOptions);
     }
 
     private Statistics getStatistics() {
-        return this.dbOpts.statistics();
+        return this.dbOpt.statistics();
     }
 
     private ColumnFamilyHandle getDefaultCFHandle() {
-        return defaultCFHandle;
+        return defaultHandle;
+    }
+
+    private ColumnFamilyHandle getConfCFHandle() {
+        return confHandle;
     }
 
     private void flushWAL() throws RocksDBException {
