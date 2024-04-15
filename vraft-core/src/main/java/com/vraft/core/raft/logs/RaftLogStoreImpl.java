@@ -105,6 +105,15 @@ public class RaftLogStoreImpl implements RaftLogStore {
     }
 
     @Override
+    public synchronized void shutdown() {
+        try {
+            closeDb();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    @Override
     public byte[] getFirstLog(long groupId) {
 
         return null;
@@ -215,52 +224,43 @@ public class RaftLogStoreImpl implements RaftLogStore {
         return this.db.newIterator(defaultHandle, readOptions);
     }
 
-    public synchronized void shutdown() {
+    private void closeDb() throws Exception {
+        FlushOptions flushOptions = new FlushOptions();
+        flushOptions.setWaitForFlush(true);
         try {
-            final FlushOptions flushOptions = new FlushOptions();
-            flushOptions.setWaitForFlush(true);
-            try {
-                flush(flushOptions);
-            } finally {
-                flushOptions.close();
-            }
-            this.db.cancelAllBackgroundWork(true);
-            this.db.pauseBackgroundWork();
-            //The close order is matter.
-            //1. close column family handles
-            this.confHandle.close();
-            this.defaultHandle.close();
-            //2. close column family options.
-            for (ColumnFamilyOptions opt : this.cfOptions) {
-                opt.close();
-            }
-            //3. close options
-            if (this.writeOptions != null) {
-                this.writeOptions.close();
-            }
-            if (this.readOptions != null) {
-                this.readOptions.close();
-            }
-            if (this.dbOpt != null) {
-                this.dbOpt.close();
-            }
-
-            //4. close db.
-            if (db != null) {
-                this.db.syncWal();
-            }
-            if (db != null) {
-                this.db.closeE();
-            }
-            //5. help gc.
-            this.cfOptions.clear();
-            this.db = null;
-            this.readOptions = null;
-            this.writeOptions = null;
-            this.dbOpt = null;
-        } catch (Exception ex) {
-            ex.printStackTrace();
+            flush(flushOptions);
+        } finally {
+            flushOptions.close();
         }
+        this.db.cancelAllBackgroundWork(true);
+        this.db.pauseBackgroundWork();
+
+        this.confHandle.close();
+        this.defaultHandle.close();
+
+        for (ColumnFamilyOptions opt : this.cfOptions) {
+            opt.close();
+        }
+        if (this.writeOptions != null) {
+            this.writeOptions.close();
+        }
+        if (this.readOptions != null) {
+            this.readOptions.close();
+        }
+        if (this.dbOpt != null) {
+            this.dbOpt.close();
+        }
+        if (db != null) {
+            this.db.syncWal();
+        }
+        if (db != null) {
+            this.db.closeE();
+        }
+        this.cfOptions.clear();
+        this.db = null;
+        this.readOptions = null;
+        this.writeOptions = null;
+        this.dbOpt = null;
     }
 
     private void flush(FlushOptions flushOptions) throws Exception {
