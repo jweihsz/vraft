@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.vraft.core.raft.elect.RaftElectMgrImpl;
-import com.vraft.core.raft.logs.RaftLogsMgrImpl;
+import com.vraft.core.raft.logs.RaftLogMgrImpl;
 import com.vraft.core.raft.logs.RaftReplicatorImpl;
 import com.vraft.core.raft.peers.RaftPeersMgrImpl;
 import com.vraft.core.utils.MathUtil;
@@ -68,7 +68,7 @@ public class RaftNodeImpl implements RaftNode {
         nodeCtx.setPeersMgr(new RaftPeersMgrImpl(sysCtx));
         nodeCtx.getPeersMgr().init();
 
-        nodeCtx.setLogsMgr(new RaftLogsMgrImpl(sysCtx));
+        nodeCtx.setLogsMgr(new RaftLogMgrImpl(sysCtx));
         nodeCtx.getLogsMgr().init();
 
         nodeCtx.setElectMgr(new RaftElectMgrImpl(sysCtx, this));

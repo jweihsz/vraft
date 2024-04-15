@@ -5,26 +5,22 @@ package com.vraft.facade.raft.logs;
  * @version 2024/4/7 15:43
  **/
 public enum RaftLogType {
-    ENTRY_TYPE_UNKNOWN(0),
+    UNKNOWN((byte)0),
 
-    ENTRY_TYPE_NO_OP(1),
+    NO_OP((byte)1),
 
-    ENTRY_TYPE_DATA(2),
+    ENTRY_DATA((byte)2),
 
-    ENTRY_TYPE_CONFIGURATION(3),
+    ENTRY_CONF((byte)3),
     ;
 
-    private final int type;
+    private final byte type;
 
-    RaftLogType(final int type) {
-        this.type = type;
-    }
+    RaftLogType(final byte type) {this.type = type;}
 
-    public int getType() {
-        return type;
-    }
+    public byte getType() {return type;}
 
-    public static boolean valid(int type) {
+    public static boolean valid(byte type) {
         return type > 0 && type < 4;
     }
 }

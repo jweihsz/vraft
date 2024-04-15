@@ -10,15 +10,15 @@ import org.apache.logging.log4j.Logger;
  * @author jweihsz
  * @version 2024/3/25 16:16
  **/
-public class RaftLogsMgrImpl implements RaftLogsMgr {
-    private final static Logger logger = LogManager.getLogger(RaftLogsMgrImpl.class);
+public class RaftLogMgrImpl implements RaftLogsMgr {
+    private final static Logger logger = LogManager.getLogger(RaftLogMgrImpl.class);
 
     private final SystemCtx sysCtx;
     private volatile long lastLogTerm;
     private volatile long lastLogIndex;
     private final RaftVoteFor voteMate;
 
-    public RaftLogsMgrImpl(SystemCtx sysCtx) {
+    public RaftLogMgrImpl(SystemCtx sysCtx) {
         this.sysCtx = sysCtx;
         this.lastLogTerm = 0L;
         this.lastLogIndex = 0L;

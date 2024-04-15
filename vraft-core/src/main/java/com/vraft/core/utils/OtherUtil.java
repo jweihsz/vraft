@@ -101,6 +101,10 @@ public class OtherUtil {
         return TimeUnit.NANOSECONDS.toMillis(gmt);
     }
 
+    public static void setByte(byte[] memory, int index, byte value) {
+        memory[index] = value;
+    }
+
     public static void setLong(byte[] memory, int index, long value) {
         memory[index] = (byte)(value >>> 56);
         memory[index + 1] = (byte)(value >>> 48);

@@ -5,9 +5,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.vraft.core.pool.ObjectsPool;
 import com.vraft.core.utils.OtherUtil;
+import com.vraft.facade.raft.logs.RaftConfEntry;
+import com.vraft.facade.raft.logs.RaftLogEntry;
 import com.vraft.facade.raft.logs.RaftLogOpts;
 import com.vraft.facade.raft.logs.RaftLogStore;
+import com.vraft.facade.raft.logs.RaftLogType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.BlockBasedTableConfig;
@@ -28,6 +32,7 @@ import org.rocksdb.RateLimiter;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
+import org.rocksdb.RocksIterator;
 import org.rocksdb.SkipListMemTableConfig;
 import org.rocksdb.Statistics;
 import org.rocksdb.StatsLevel;
@@ -42,7 +47,6 @@ import static org.rocksdb.RocksDB.NOT_FOUND;
 /**
  * @author jweihsz
  * @version 2024/4/5 07:47
- * copy from rocketmq5.0
  **/
 public class RaftLogStoreImpl implements RaftLogStore {
     private final static Logger logger = LogManager.getLogger(RaftLogStoreImpl.class);
@@ -52,6 +56,7 @@ public class RaftLogStoreImpl implements RaftLogStore {
     private RaftLogOpts logOpt;
     private ReadOptions readOptions;
     private WriteOptions writeOptions;
+    private ReadOptions orderReadOptions;
 
     private final byte[] CFG_COLUMN_FAMILY;
     private ColumnFamilyHandle confHandle;
@@ -84,6 +89,9 @@ public class RaftLogStoreImpl implements RaftLogStore {
         readOptions.setTotalOrderSeek(false);
         readOptions.setTailing(false);
 
+        orderReadOptions = new ReadOptions();
+        orderReadOptions.setTotalOrderSeek(true);
+
         ColumnFamilyOptions opt = createConfigOptions();
         List<ColumnFamilyDescriptor> desc = buildFamilyDesc(opt);
         List<ColumnFamilyHandle> handles = new ArrayList<>();
@@ -94,6 +102,44 @@ public class RaftLogStoreImpl implements RaftLogStore {
         confHandle = handles.get(0);
         defaultHandle = handles.get(1);
         cfOptions.add(opt);
+    }
+
+    @Override
+    public byte[] getFirstLog(long groupId) {
+
+        return null;
+    }
+
+    @Override
+    public byte[] getLastLog(long groupId) {
+
+        return null;
+    }
+
+    @Override
+    public RaftLogEntry getEntry(long groupId, long term, long index) throws Exception {
+        final byte type = RaftLogType.ENTRY_DATA.getType();
+        final byte[] keyBytes = buildKey(groupId, term, index, type);
+        final byte[] value = get(defaultHandle, orderReadOptions, keyBytes);
+        return new RaftLogEntry(groupId, term, index, type, value);
+    }
+
+    @Override
+    public RaftConfEntry getConf(long groupId, long term, long index) throws Exception {
+        final byte type = RaftLogType.ENTRY_CONF.getType();
+        final byte[] keyBytes = buildKey(groupId, term, index, type);
+        final byte[] value = get(confHandle, orderReadOptions, keyBytes);
+        return new RaftConfEntry(groupId, term, index, type, value);
+    }
+
+    private byte[] buildKey(long groupId, long term,
+        long index, byte type) {
+        byte[] bs = ObjectsPool.getBytes25Obj();
+        OtherUtil.setLong(bs, 0, groupId);
+        OtherUtil.setLong(bs, 8, term);
+        OtherUtil.setLong(bs, 16, index);
+        OtherUtil.setByte(bs, 24, type);
+        return bs;
     }
 
     private List<ColumnFamilyDescriptor> buildFamilyDesc(ColumnFamilyOptions opt) {
@@ -159,6 +205,14 @@ public class RaftLogStoreImpl implements RaftLogStore {
         } else {
             return RocksDB.openReadOnly(options, dbPath, cfDescriptors, cfHandles);
         }
+    }
+
+    private RocksIterator newCfgIterator() {
+        return this.db.newIterator(confHandle, readOptions);
+    }
+
+    private RocksIterator newDefaultIterator() {
+        return this.db.newIterator(defaultHandle, readOptions);
     }
 
     public synchronized void shutdown() {

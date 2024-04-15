@@ -6,6 +6,7 @@ import com.vraft.facade.raft.elect.RaftInnerCmd;
 import com.vraft.facade.raft.elect.RaftVoteReq;
 import com.vraft.facade.raft.elect.RaftVoteResp;
 import io.netty.util.Recycler;
+import io.netty.util.concurrent.FastThreadLocal;
 
 /**
  * @author jweihsz
@@ -14,14 +15,18 @@ import io.netty.util.Recycler;
 public class ObjectsPool {
     private ObjectsPool() {}
 
-    private static final ThreadLocal<RaftVoteReq> voteReq;
-    private static final ThreadLocal<RaftVoteResp> voteResp;
-    private static final ThreadLocal<RaftInnerCmd> innerCmd;
+    private static final FastThreadLocal<byte[]> bytes16;
+    private static final FastThreadLocal<byte[]> bytes25;
+    private static final FastThreadLocal<RaftVoteReq> voteReq;
+    private static final FastThreadLocal<RaftVoteResp> voteResp;
+    private static final FastThreadLocal<RaftInnerCmd> innerCmd;
 
     static {
-        voteReq = new ThreadLocal<>();
-        voteResp = new ThreadLocal<>();
-        innerCmd = new ThreadLocal<>();
+        bytes16 = new FastThreadLocal<>();
+        bytes25 = new FastThreadLocal<>();
+        voteReq = new FastThreadLocal<>();
+        voteResp = new FastThreadLocal<>();
+        innerCmd = new FastThreadLocal<>();
     }
 
     public static final Recycler<TimerTask> TIMER_TASK_RECYCLER = new Recycler<TimerTask>() {
@@ -60,6 +65,22 @@ public class ObjectsPool {
         cmd = new RaftInnerCmd();
         innerCmd.set(cmd);
         return cmd;
+    }
+
+    public static byte[] getBytes16Obj() {
+        byte[] bs = bytes16.get();
+        if (bs != null) {return bs;}
+        bs = new byte[16];
+        bytes16.set(bs);
+        return bs;
+    }
+
+    public static byte[] getBytes25Obj() {
+        byte[] bs = bytes25.get();
+        if (bs != null) {return bs;}
+        bs = new byte[25];
+        bytes16.set(bs);
+        return bs;
     }
 
 }
